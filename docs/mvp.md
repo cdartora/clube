@@ -2,6 +2,8 @@
 
 Fórum fechado para amigos próximos, sem anúncios. A inspiração é o TabNews, com a cara dos fóruns dos anos 2000: simples, rápido, renderizado no servidor.
 
+**Situação:** passos 1 a 8 implementados e testados; falta o deploy (passo 9, guia em [`deploy.md`](deploy.md)).
+
 ## Decisões tomadas
 
 | Tema | Decisão |
@@ -46,15 +48,15 @@ Se a policy do Access aceitasse qualquer email, qualquer pessoa conseguiria pass
 ### Fluxo de convite
 
 1. O membro abre **Convites** e digita o email do amigo. Isso usa a cota: 1 por membro, ilimitada para admin.
-2. O Worker cria o convite (`pending`) e adiciona o email ao grupo do Access pela API.
-3. O membro manda o link do clube para o amigo pelo WhatsApp. O app não envia email.
+2. O Worker adiciona o email ao grupo do Access pela API e só então registra o convite (`pending`). Se a API falhar, nada fica registrado.
+3. O membro manda o link do Clube para o amigo (botões **Copiar link** e **Mandar pelo WhatsApp**). O app não envia email.
 4. O amigo abre o link, informa o email e recebe o código da Cloudflare. Com o código, entra.
 5. O app vê um email com convite pendente e sem usuário e abre a tela de **boas-vindas**: escolher apelido (username), nome de exibição e aceitar as regras da casa.
 6. O usuário é criado, o convite fica `accepted` e o registro de `invited_by` monta a árvore de convites.
 
 Outros casos:
 - **Cancelar convite** (enquanto pendente): remove o email do grupo do Access e devolve a cota.
-- **Desativar usuário** (admin): marca `disabled`, remove do grupo do Access e revoga as sessões dele.
+- **Desativar usuário** (admin): remove do grupo do Access (novos logins param) e marca `disabled`, o que bloqueia a conta na hora, mesmo que a sessão do Access ainda esteja válida. Reativar faz o caminho inverso.
 - **Email autenticado sem usuário e sem convite**, que não deveria acontecer: página "você não foi convidado".
 - **Primeiro admin**: criado por um script de seed. Os 3 amigos iniciais são convidados pelo admin no fluxo normal.
 - **Mais de um membro convidou a mesma pessoa**: vale o convite mais antigo, e os outros são cancelados (a cota volta para quem convidou).
@@ -63,11 +65,11 @@ Outros casos:
 
 Localmente não existe Access. Com a variável `DEV_USER_EMAIL` definida, e somente no ambiente local, o Worker pula a validação do JWT e usa esse email.
 
-### Segredos do Worker
+### Configuração do Worker
 
-- `CF_API_TOKEN`: token com permissão de editar grupos do Access
-- `CF_ACCOUNT_ID`, `ACCESS_GROUP_ID`
-- `ACCESS_TEAM_DOMAIN` e `ACCESS_AUD`: para validar o JWT
+- **Segredo** (`npx wrangler secret put`): `CF_API_TOKEN`, token com permissão de editar grupos do Access.
+- **Variáveis** (`vars` no `wrangler.jsonc`): `ACCESS_TEAM_DOMAIN` e `ACCESS_AUD` para validar o JWT; `CF_ACCOUNT_ID` e `ACCESS_GROUP_ID` para a API de grupos.
+- **Local** (`.dev.vars`): `DEV_USER_EMAIL`.
 
 ## Funcionalidades do MVP
 
@@ -76,16 +78,17 @@ Localmente não existe Access. Com a variável `DEV_USER_EMAIL` definida, e some
 - Respostas em **árvore**, como no TabNews: dá para responder o tópico ou qualquer resposta.
 - A indentação visual para num limite de profundidade (por exemplo, 6 níveis), para não espremer o texto no celular. Abaixo disso as respostas continuam alinhadas no último nível.
 - Cada resposta tem "responder", que abre o formulário logo abaixo dela via htmx.
-- O apagar é lógico (`deleted_at`) e a resposta aparece como "mensagem removida".
+- Editar: só o autor. Apagar: o autor ou um admin.
+- O apagar é lógico (`deleted_at`). Uma resposta apagada some; se tiver respostas embaixo, fica como "mensagem removida" para a conversa continuar legível.
 
 **Página inicial**
 - Lista de tópicos ordenada pela **última atividade**: uma resposta nova "sobe" o tópico.
-- Indicador de **"novo"** em tópicos com respostas que você ainda não leu.
+- Marca **"novo"** em tópicos que você nunca abriu e **"novas respostas"** nos que tiveram atividade depois da sua última visita. Dentro do tópico, as respostas de outras pessoas desde a sua última visita ganham a marca **"nova"**.
 - Mostra autor, número de respostas e quem respondeu por último, e quando.
 
 **Editor amigável**
-- Uma caixa de texto com barra de botões: **negrito**, *itálico*, link, citação, lista e emoji.
-- Abas **Escrever / Visualizar**. A prévia é renderizada pelo servidor via htmx, então o que se vê é exatamente o que vai ser publicado.
+- Uma caixa de texto com barra de botões: **negrito**, *itálico*, link, citação e lista. Atalhos: Ctrl+B, Ctrl+I e Ctrl+Enter para publicar.
+- Abas **Escrever / Visualizar**. A prévia é renderizada pelo servidor, então o que se vê é exatamente o que vai ser publicado.
 - O conteúdo é guardado em Markdown, mas a pessoa não precisa saber disso: os botões escrevem a sintaxe.
 - A renderização usa `markdown-it` com HTML bruto desabilitado, para não abrir brecha de XSS.
 
@@ -103,23 +106,29 @@ São duas coisas com papéis diferentes, valendo para tópicos e respostas:
 - Ninguém vota ou aplaude o próprio post.
 - **Ordem na árvore:** respostas irmãs ficam por pontuação (maior primeiro) e, no empate, a mais antiga primeiro.
 - **Índice:** continua ordenado pela última atividade, como em fórum. Uma aba "Em alta", ordenada por pontuação, fica para depois.
-- **Aplausos sem gastar escrita à toa:** o navegador junta os cliques e envia um único pedido cerca de 1 segundo depois do último clique ("+7"). O servidor soma e trava em 10.
+- **Aplausos sem gastar escrita à toa:** o navegador junta os cliques e envia um único pedido menos de 1 segundo depois do último clique ("+7"). O servidor soma e trava em 10.
 - Os totais ficam guardados em `score` e `clap_count`, no próprio tópico ou resposta, para a página não precisar contar a cada visita.
 
-**Perfil**
+**Perfil** (`/u/apelido`)
 - Apelido, nome de exibição, bio curta, data de entrada e quem convidou.
-- Lista de tópicos da pessoa.
+- Quantos tópicos e respostas escreveu e quantos aplausos recebeu.
+- Tópicos e respostas recentes, e quem a pessoa trouxe para o Clube.
+- Cada um edita o próprio nome de exibição e bio; o apelido é fixo.
 
 **Notificações (dentro do app)**
 - Alguém respondeu seu tópico ou uma resposta sua.
 - Aplausos recebidos, agrupados ("Bia e mais 2 aplaudiram seu tópico"). Votos não notificam, para continuarem anônimos.
-- Contador no cabeçalho e página com a lista.
+- Contador no cabeçalho e página com a lista. Abrir o tópico marca os avisos dele como lidos; há também "marcar todas como lidas".
 
-**Admin**
-- Convidar sem limite de cota, ajustar a cota de um membro e desativar usuário.
+**Admin** (`/admin`)
+- Convidar sem limite de cota, ajustar a cota de um membro (0 a 50), desativar e reativar membros.
+- Um admin não mexe na própria conta nem na de outro admin.
 
 ### Fora do MVP (próximos passos)
-- Upload de imagens (R2)
+- "Marcar tudo como lido" no índice
+- Paginação do índice (hoje mostra os 50 tópicos mais recentes) e de tópicos longos
+- Aba "Em alta", ordenada por pontuação
+- Upload de imagens e foto de perfil (R2)
 - Busca (FTS5 do D1)
 - Menções `@apelido`
 - Expiração automática de convites (Cron Trigger)
@@ -179,10 +188,10 @@ Como cota disponível se calcula: `invite_quota` menos os convites `pending` ou 
 - **Front**: htmx + CSS escrito à mão (visual "fórum anos 2000", leve)
 - **Markdown**: `markdown-it`
 - **JWT**: `jose` (validação do token do Access)
-- **Testes**: Vitest + `@cloudflare/vitest-pool-workers`
-- **Deploy**: `wrangler` e, depois, GitHub Actions
+- **Testes**: Vitest + `@cloudflare/vitest-plugin` (rodam dentro do runtime do Workers; a API do Access é simulada)
+- **Deploy**: `wrangler` (GitHub Actions fica para depois)
 
-## Ordem de implementação sugerida
+## Andamento
 
 1. ✅ Scaffold: Hono, wrangler, D1, Drizzle, layout base e CSS
 2. ✅ Middleware de auth (JWT do Access + modo dev) e seed do admin
