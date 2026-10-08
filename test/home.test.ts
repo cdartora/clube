@@ -22,7 +22,7 @@ describe("índice", () => {
 
     const html = await (await get("/")).text();
     expect(html).toContain("Churrasco no sábado?");
-    expect(html).toContain("por Ana");
+    expect(html).toContain('por <a href="/u/ana">Ana</a>');
   });
 
   it("responde 404 com o layout do fórum", async () => {

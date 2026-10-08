@@ -14,7 +14,7 @@ describe("modo local (DEV_USER_EMAIL)", () => {
   it("deixa entrar um membro ativo e mostra o nome dele", async () => {
     const res = await requestAs("ana@x.com", "/");
     expect(res.status).toBe(200);
-    expect(await res.text()).toContain("Olá, Ana");
+    expect(await res.text()).toContain('Olá, <a href="/u/ana">Ana</a>');
   });
 
   it("ignora maiúsculas no email", async () => {

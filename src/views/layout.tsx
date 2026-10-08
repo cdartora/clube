@@ -4,7 +4,7 @@ import type { User } from "../db/schema";
 
 type LayoutProps = {
   title?: string;
-  user?: (Pick<User, "displayName" | "username"> & { unreadCount?: number }) | null;
+  user?: (Pick<User, "displayName" | "username" | "role"> & { unreadCount?: number }) | null;
   children: Child;
 };
 
@@ -39,7 +39,12 @@ export const Layout = ({ title, user, children }: LayoutProps) => (
                 Notificações{user.unreadCount ? <span class="badge">{user.unreadCount}</span> : null}
               </a>
             )}
-            {user && <span class="navbar-user">Olá, {user.displayName}</span>}
+            {user?.role === "admin" && <a href="/admin">Admin</a>}
+            {user && (
+              <span class="navbar-user">
+                Olá, <a href={`/u/${user.username}`}>{user.displayName}</a>
+              </span>
+            )}
           </nav>
           <main>{children}</main>
           <footer class="footer">Clube · sem anúncios, sem algoritmo</footer>

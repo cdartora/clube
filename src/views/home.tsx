@@ -6,6 +6,7 @@ export type TopicRow = {
   id: number;
   title: string;
   author: string;
+  authorUsername: string;
   replyCount: number;
   lastActivityAt: Date;
   lastReplyBy: string | null;
@@ -44,7 +45,7 @@ export const HomePage = ({ topics, user }: { topics: TopicRow[]; user: User }) =
                 {t.readState === "new" && <span class="badge-new">novo</span>}
                 {t.readState === "updated" && <span class="badge-new">novas respostas</span>}
                 <div class="meta">
-                  por {t.author}
+                  por <a href={`/u/${t.authorUsername}`}>{t.author}</a>
                   <span class="mobile-only"> · {t.replyCount} resp.</span>
                 </div>
               </td>

@@ -51,7 +51,10 @@ const PostMeta = ({ name, username, createdAt, updatedAt }: {
   updatedAt: Date | null;
 }) => (
   <div class="post-meta">
-    <strong class="post-author">{name}</strong> <span class="username">@{username}</span> ·{" "}
+    <a href={`/u/${username}`} class="post-author">
+      {name}
+    </a>{" "}
+    <span class="username">@{username}</span> ·{" "}
     <time datetime={createdAt.toISOString()}>{formatDateTime(createdAt)}</time>
     {updatedAt && <span class="edited"> · editado</span>}
   </div>

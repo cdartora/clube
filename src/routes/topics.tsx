@@ -116,6 +116,7 @@ topicRoutes.get("/", async (c) => {
       id: topics.id,
       title: topics.title,
       author: users.displayName,
+      authorUsername: users.username,
       replyCount: topics.replyCount,
       lastActivityAt: topics.lastActivityAt,
       lastReplyBy: lastReplier.displayName,
