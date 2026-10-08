@@ -16,6 +16,11 @@
       "migrations_dir": "drizzle/migrations"
     }
   ],
+  "vars": {
+    // Preenchidos quando o Access for configurado (passo 9). Vazios = modo local com DEV_USER_EMAIL.
+    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_AUD": ""
+  },
   "observability": {
     "enabled": true
   }

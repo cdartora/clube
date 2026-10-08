@@ -6,7 +6,7 @@ CREATE TABLE `claps` (
 	`updated_at` integer DEFAULT (unixepoch()) NOT NULL,
 	PRIMARY KEY(`user_id`, `target_type`, `target_id`),
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action,
-	CONSTRAINT "claps_count_check" CHECK("claps"."count" BETWEEN 1 AND 50)
+	CONSTRAINT "claps_count_check" CHECK("claps"."count" BETWEEN 1 AND 10)
 );
 --> statement-breakpoint
 CREATE INDEX `claps_target_idx` ON `claps` (`target_type`,`target_id`);--> statement-breakpoint

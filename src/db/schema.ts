@@ -111,7 +111,7 @@ export const votes = sqliteTable(
 );
 
 // Aplausos (estilo Medium): públicos, até MAX_CLAPS por pessoa em cada post.
-export const MAX_CLAPS = 50;
+export const MAX_CLAPS = 10;
 
 export const claps = sqliteTable(
   "claps",

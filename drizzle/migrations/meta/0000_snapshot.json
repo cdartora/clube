@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "910e9dba-d165-455e-9dd0-db19437d78a8",
+  "id": "1d87fe39-cbd6-4431-9b10-e1cfd15964ee",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "claps": {
@@ -83,7 +83,7 @@
       "checkConstraints": {
         "claps_count_check": {
           "name": "claps_count_check",
-          "value": "\"claps\".\"count\" BETWEEN 1 AND 50"
+          "value": "\"claps\".\"count\" BETWEEN 1 AND 10"
         }
       }
     },

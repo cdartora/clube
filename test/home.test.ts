@@ -1,8 +1,12 @@
 import { env } from "cloudflare:test";
-import { exports } from "cloudflare:workers";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
+import { insertUser, requestAs } from "./helpers";
 
-const get = (path: string) => exports.default.fetch(`http://clube.test${path}`);
+const get = (path: string) => requestAs("ana@x.com", path);
+
+beforeAll(async () => {
+  await insertUser(1, "ana@x.com", "ana", "Ana");
+});
 
 describe("índice", () => {
   it("mostra a mensagem de vazio quando não há tópicos", async () => {
@@ -12,14 +16,9 @@ describe("índice", () => {
   });
 
   it("lista tópicos com o nome do autor", async () => {
-    await env.DB.batch([
-      env.DB.prepare(
-        "INSERT INTO users (id, email, username, display_name, role) VALUES (1, 'a@x.com', 'ana', 'Ana', 'admin')",
-      ),
-      env.DB.prepare(
-        "INSERT INTO topics (author_id, title, body_md) VALUES (1, 'Churrasco no sábado?', 'Quem topa?')",
-      ),
-    ]);
+    await env.DB.prepare(
+      "INSERT INTO topics (author_id, title, body_md) VALUES (1, 'Churrasco no sábado?', 'Quem topa?')",
+    ).run();
 
     const html = await (await get("/")).text();
     expect(html).toContain("Churrasco no sábado?");

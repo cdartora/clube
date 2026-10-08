@@ -1,3 +1,4 @@
+import type { User } from "../db/schema";
 import { Layout } from "./layout";
 
 export type TopicRow = {
@@ -14,8 +15,8 @@ const dateFmt = new Intl.DateTimeFormat("pt-BR", {
   timeZone: "America/Sao_Paulo",
 });
 
-export const HomePage = ({ topics }: { topics: TopicRow[] }) => (
-  <Layout>
+export const HomePage = ({ topics, user }: { topics: TopicRow[]; user: User }) => (
+  <Layout user={user}>
     <table class="forum-table">
       <thead>
         <tr>

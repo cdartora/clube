@@ -95,14 +95,14 @@ São duas coisas com papéis diferentes, valendo para tópicos e respostas:
 | | Votos (▲ / ▼) | Aplausos 👏 |
 |---|---|---|
 | Para quê | "isso contribui / não contribui para a conversa" | "gostei muito disso" |
-| Quanto | 1 voto por pessoa: +1 ou −1 (clicar de novo desfaz) | de 1 a 50 por pessoa, clicando várias vezes |
+| Quanto | 1 voto por pessoa: +1 ou −1 (clicar de novo desfaz) | de 1 a 10 por pessoa, clicando várias vezes |
 | Quem vê | **anônimo**: só aparece a pontuação | **público**: "Bia aplaudiu 12×" |
 | Efeito | ordena as respostas dentro da árvore | só reconhecimento, não mexe na ordem |
 
 - Ninguém vota ou aplaude o próprio post.
 - **Ordem na árvore:** respostas irmãs ficam por pontuação (maior primeiro) e, no empate, a mais antiga primeiro.
 - **Índice:** continua ordenado pela última atividade, como em fórum. Uma aba "Em alta", ordenada por pontuação, fica para depois.
-- **Aplausos sem gastar escrita à toa:** o navegador junta os cliques e envia um único pedido cerca de 1 segundo depois do último clique ("+7"). O servidor soma e trava em 50.
+- **Aplausos sem gastar escrita à toa:** o navegador junta os cliques e envia um único pedido cerca de 1 segundo depois do último clique ("+7"). O servidor soma e trava em 10.
 - Os totais ficam guardados em `score` e `clap_count`, no próprio tópico ou resposta, para a página não precisar contar a cada visita.
 
 **Perfil**
@@ -156,7 +156,7 @@ votes
   PK (user_id, target_type, target_id)
 
 claps
-  user_id, target_type ('topic' | 'reply'), target_id, count (1 a 50), updated_at
+  user_id, target_type ('topic' | 'reply'), target_id, count (1 a 10), updated_at
   PK (user_id, target_type, target_id)
 
 topic_reads
@@ -184,7 +184,7 @@ Como cota disponível se calcula: `invite_quota` menos os convites `pending` ou 
 ## Ordem de implementação sugerida
 
 1. ✅ Scaffold: Hono, wrangler, D1, Drizzle, layout base e CSS
-2. Middleware de auth (JWT do Access + modo dev) e seed do admin
+2. ✅ Middleware de auth (JWT do Access + modo dev) e seed do admin
 3. Onboarding: tela de boas-vindas e criação de usuário
 4. Tópicos e respostas com o editor
 5. Votos e aplausos

@@ -21,7 +21,7 @@ describe("restrições do banco", () => {
     await expect(vote(3, 2)).rejects.toThrow(/CHECK/);
   });
 
-  it("limita os aplausos a 50 por pessoa em cada post", async () => {
+  it("limita os aplausos a 10 por pessoa em cada post", async () => {
     const clap = (id: number, count: number) =>
       env.DB.prepare(
         "INSERT INTO claps (user_id, target_type, target_id, count) VALUES (1, 'reply', ?, ?)",
@@ -29,8 +29,8 @@ describe("restrições do banco", () => {
         .bind(id, count)
         .run();
 
-    await clap(1, 50);
-    await expect(clap(2, 51)).rejects.toThrow(/CHECK/);
+    await clap(1, 10);
+    await expect(clap(2, 11)).rejects.toThrow(/CHECK/);
     await expect(clap(3, 0)).rejects.toThrow(/CHECK/);
   });
 });

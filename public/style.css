@@ -87,6 +87,12 @@ a:hover {
   text-decoration: none;
 }
 
+.navbar-user {
+  margin-left: auto;
+  color: var(--muted);
+  font-weight: normal;
+}
+
 .box {
   padding: 12px 16px;
   border: 1px solid var(--border);
