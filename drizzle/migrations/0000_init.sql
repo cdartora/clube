@@ -1,3 +1,15 @@
+CREATE TABLE `claps` (
+	`user_id` integer NOT NULL,
+	`target_type` text NOT NULL,
+	`target_id` integer NOT NULL,
+	`count` integer NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch()) NOT NULL,
+	PRIMARY KEY(`user_id`, `target_type`, `target_id`),
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action,
+	CONSTRAINT "claps_count_check" CHECK("claps"."count" BETWEEN 1 AND 50)
+);
+--> statement-breakpoint
+CREATE INDEX `claps_target_idx` ON `claps` (`target_type`,`target_id`);--> statement-breakpoint
 CREATE TABLE `invites` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`email` text NOT NULL,
@@ -32,6 +44,8 @@ CREATE TABLE `replies` (
 	`parent_id` integer,
 	`author_id` integer NOT NULL,
 	`body_md` text NOT NULL,
+	`score` integer DEFAULT 0 NOT NULL,
+	`clap_count` integer DEFAULT 0 NOT NULL,
 	`created_at` integer DEFAULT (unixepoch()) NOT NULL,
 	`updated_at` integer,
 	`deleted_at` integer,
@@ -56,6 +70,8 @@ CREATE TABLE `topics` (
 	`title` text NOT NULL,
 	`body_md` text NOT NULL,
 	`reply_count` integer DEFAULT 0 NOT NULL,
+	`score` integer DEFAULT 0 NOT NULL,
+	`clap_count` integer DEFAULT 0 NOT NULL,
 	`last_reply_at` integer,
 	`last_reply_by` integer,
 	`last_activity_at` integer DEFAULT (unixepoch()) NOT NULL,
@@ -82,4 +98,14 @@ CREATE TABLE `users` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `users_email_unique` ON `users` (`email`);--> statement-breakpoint
-CREATE UNIQUE INDEX `users_username_unique` ON `users` (`username`);
+CREATE UNIQUE INDEX `users_username_unique` ON `users` (`username`);--> statement-breakpoint
+CREATE TABLE `votes` (
+	`user_id` integer NOT NULL,
+	`target_type` text NOT NULL,
+	`target_id` integer NOT NULL,
+	`value` integer NOT NULL,
+	`created_at` integer DEFAULT (unixepoch()) NOT NULL,
+	PRIMARY KEY(`user_id`, `target_type`, `target_id`),
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action,
+	CONSTRAINT "votes_value_check" CHECK("votes"."value" IN (-1, 1))
+);

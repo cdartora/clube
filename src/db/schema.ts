@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   type AnySQLiteColumn,
+  check,
   index,
   integer,
   primaryKey,
@@ -53,6 +54,8 @@ export const topics = sqliteTable(
     title: text("title").notNull(),
     bodyMd: text("body_md").notNull(),
     replyCount: integer("reply_count").notNull().default(0),
+    score: integer("score").notNull().default(0),
+    clapCount: integer("clap_count").notNull().default(0),
     lastReplyAt: integer("last_reply_at", { mode: "timestamp" }),
     lastReplyBy: integer("last_reply_by").references(() => users.id),
     lastActivityAt: integer("last_activity_at", { mode: "timestamp" })
@@ -78,11 +81,56 @@ export const replies = sqliteTable(
       .notNull()
       .references(() => users.id),
     bodyMd: text("body_md").notNull(),
+    score: integer("score").notNull().default(0),
+    clapCount: integer("clap_count").notNull().default(0),
     createdAt: createdAt(),
     updatedAt: integer("updated_at", { mode: "timestamp" }),
     deletedAt: integer("deleted_at", { mode: "timestamp" }),
   },
   (t) => [index("replies_topic_idx").on(t.topicId)],
+);
+
+const targetType = () => text("target_type", { enum: ["topic", "reply"] }).notNull();
+
+// Voto anônimo: +1 ou -1 por pessoa. A soma fica em topics.score / replies.score.
+export const votes = sqliteTable(
+  "votes",
+  {
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    targetType: targetType(),
+    targetId: integer("target_id").notNull(),
+    value: integer("value").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.targetType, t.targetId] }),
+    check("votes_value_check", sql`${t.value} IN (-1, 1)`),
+  ],
+);
+
+// Aplausos (estilo Medium): públicos, até MAX_CLAPS por pessoa em cada post.
+export const MAX_CLAPS = 50;
+
+export const claps = sqliteTable(
+  "claps",
+  {
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    targetType: targetType(),
+    targetId: integer("target_id").notNull(),
+    count: integer("count").notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.targetType, t.targetId] }),
+    index("claps_target_idx").on(t.targetType, t.targetId),
+    check("claps_count_check", sql`${t.count} BETWEEN 1 AND ${sql.raw(String(MAX_CLAPS))}`),
+  ],
 );
 
 // Marcador de "novo": última vez que o usuário abriu o tópico.
@@ -110,7 +158,7 @@ export const notifications = sqliteTable(
     actorId: integer("actor_id")
       .notNull()
       .references(() => users.id),
-    type: text("type", { enum: ["reply"] }).notNull(),
+    type: text("type", { enum: ["reply", "clap"] }).notNull(),
     topicId: integer("topic_id")
       .notNull()
       .references(() => topics.id),
