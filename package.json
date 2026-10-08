@@ -5,11 +5,13 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy --env staging",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply clube --local",
     "db:migrate:remote": "wrangler d1 migrations apply clube --remote",
+    "db:migrate:staging": "wrangler d1 migrations apply clube-staging --remote --env staging",
     "seed:admin": "node scripts/seed-admin.mjs",
     "cf-typegen": "wrangler types --strict-vars=false"
   },

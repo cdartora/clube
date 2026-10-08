@@ -31,7 +31,9 @@ export const authenticate = createMiddleware<AppEnv>(async (c, next) => {
   if (ACCESS_TEAM_DOMAIN && ACCESS_AUD) {
     const token = c.req.header(ACCESS_JWT_HEADER);
     if (token) {
-      email = await verifyAccessJwt(token, { teamDomain: ACCESS_TEAM_DOMAIN, aud: ACCESS_AUD });
+      // Mais de uma aplicação do Access (workers.dev e preview URLs) = AUDs separados por vírgula.
+      const aud = ACCESS_AUD.split(",").map((a) => a.trim()).filter(Boolean);
+      email = await verifyAccessJwt(token, { teamDomain: ACCESS_TEAM_DOMAIN, aud });
     }
   } else if (DEV_USER_EMAIL) {
     email = DEV_USER_EMAIL.toLowerCase();

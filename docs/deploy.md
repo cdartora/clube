@@ -69,3 +69,62 @@ Abra a URL do Worker: o Access pede seu email, manda um código, e você cai no 
 - Com outro email (fora do grupo), o Access não deixa passar.
 - Em **Convites**, convide alguém: o email aparece no grupo `clube-membros` do painel.
 - Cancelando o convite, o email sai do grupo.
+
+## Branches e ambientes
+
+| Branch | Ambiente | Worker | Banco D1 |
+|---|---|---|---|
+| `main` | produção | `clube` | `clube` |
+| `stage` | staging | `clube-staging` | `clube-staging` |
+| qualquer outra (PRs) | preview do staging | versão de preview do `clube-staging` | `clube-staging` |
+
+Fluxo: abra o PR contra `stage`; cada push na branch gera uma preview URL. Depois do merge, o `stage` vai
+para o staging. Quando o staging estiver bom, abra um PR de `stage` para `main`.
+
+A produção não tem preview URLs (`preview_urls: false`): uma preview do Worker `clube` usaria o banco de
+produção.
+
+## 5. Staging
+
+O staging é um segundo Worker (`clube-staging`, o `env.staging` do `wrangler.jsonc`), com banco e grupo do
+Access próprios. Assim, testes e convites feitos no staging não mexem na produção.
+
+1. Crie o banco e copie o `database_id` que aparecer para `env.staging.d1_databases` no `wrangler.jsonc`:
+
+   ```sh
+   npx wrangler d1 create clube-staging
+   ```
+
+2. Crie as tabelas, o primeiro admin e suba o Worker:
+
+   ```sh
+   npm run db:migrate:staging
+   npm run seed:admin -- --staging --email SEU@EMAIL --username seuapelido --name "Seu Nome"
+   npm run deploy:staging            # https://clube-staging.<sua-conta>.workers.dev
+   ```
+
+3. Repita o passo 2 (Access) para o `clube-staging`: crie o grupo **clube-staging**, ative o Access no
+   `workers.dev` **e nas Preview URLs** do Worker e restrinja as duas aplicações ao grupo. Cada aplicação tem
+   o seu AUD Tag: coloque os dois em `ACCESS_AUD`, separados por vírgula.
+4. Grave o token também no staging: `npx wrangler secret put CF_API_TOKEN --env staging`.
+5. Preencha `env.staging.vars` no `wrangler.jsonc` (mesmo `ACCESS_TEAM_DOMAIN` e `CF_ACCOUNT_ID`; o
+   `ACCESS_GROUP_ID` é o do grupo `clube-staging`).
+
+Os valores de `vars` não são segredos: deixe-os no `wrangler.jsonc`. Variáveis criadas só no painel são
+apagadas a cada `wrangler deploy` que não as tenha no arquivo. Só o `CF_API_TOKEN` fica como segredo.
+
+## 6. Deploy automático (Workers Builds)
+
+Em **Workers & Pages › (Worker) › Settings › Builds**, conecte o repositório:
+
+| | `clube` (produção) | `clube-staging` |
+|---|---|---|
+| Branch de produção | `main` | `stage` |
+| Comando de deploy | `npx wrangler deploy` | `npx wrangler deploy --env staging` |
+| Builds de outras branches | desligado | ligado |
+| Comando para outras branches | — | `npx wrangler versions upload --env staging` |
+
+Com isso, cada push em uma branch de PR gera uma preview URL do `clube-staging` (aparece no check do PR no
+GitHub), protegida pelo Access das Preview URLs. As migrations não rodam sozinhas: quando um PR trouxer
+migration nova, rode `npm run db:migrate:staging` antes de testar a preview, e `npm run db:migrate:remote`
+antes do merge em `main`.
