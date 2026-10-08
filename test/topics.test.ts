@@ -123,6 +123,22 @@ describe("respostas", () => {
     expect(rootA).toContain(`id="r-${a1}"`);
   });
 
+  it("cliques repetidos em Responder não duplicam a resposta", async () => {
+    const id = await createTopic();
+    const first = await createReply(id, "Só uma vez", BETO);
+    const again = await createReply(id, "Só uma vez", BETO);
+    const both = await Promise.all([createReply(id, "Só uma vez", BETO), createReply(id, "Só uma vez", BETO)]);
+
+    expect(again).toBe(first);
+    expect(both).toEqual([first, first]);
+    expect((await topicRow(id))?.reply_count).toBe(1);
+
+    // Mesmo texto em outro lugar, ou de outra pessoa, é outra resposta.
+    expect(await createReply(id, "Só uma vez", BETO, first)).not.toBe(first);
+    expect(await createReply(id, "Só uma vez", ANA)).not.toBe(first);
+    expect((await topicRow(id))?.reply_count).toBe(3);
+  });
+
   it("recusa responder a uma resposta de outro tópico", async () => {
     const t1 = await createTopic();
     const t2 = await createTopic();
