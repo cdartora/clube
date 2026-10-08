@@ -1,4 +1,5 @@
 import { raw } from "hono/html";
+import type { Member } from "../auth/middleware";
 import type { User } from "../db/schema";
 import { formatDateTime } from "../lib/format";
 import { renderMarkdown } from "../lib/markdown";
@@ -94,14 +95,18 @@ export const ReplyForm = ({
   </form>
 );
 
-type TreeProps = { topicId: number; user: User; depth: number; reactions: ReactionMap };
+const isNewReply = (reply: ReplyView, user: User, since: Date | null) =>
+  since !== null && reply.authorId !== user.id && reply.createdAt > since;
 
-const ReplyItem = ({ node, topicId, user, depth, reactions }: TreeProps & { node: TreeNode<ReplyView> }) => (
+type TreeProps = { topicId: number; user: User; depth: number; reactions: ReactionMap; newSince: Date | null };
+
+const ReplyItem = ({ node, topicId, user, depth, reactions, newSince }: TreeProps & { node: TreeNode<ReplyView> }) => (
   <li class="reply" id={`r-${node.id}`}>
     {node.deletedAt ? (
       <div class="post reply-post removed">mensagem removida</div>
     ) : (
-      <div class="post reply-post">
+      <div class={isNewReply(node, user, newSince) ? "post reply-post is-new" : "post reply-post"}>
+        {isNewReply(node, user, newSince) && <span class="badge-new">nova</span>}
         <PostMeta
           name={node.authorName}
           username={node.authorUsername}
@@ -137,15 +142,22 @@ const ReplyItem = ({ node, topicId, user, depth, reactions }: TreeProps & { node
       </div>
     )}
     {node.children.length > 0 && (
-      <ReplyList nodes={node.children} topicId={topicId} user={user} depth={depth + 1} reactions={reactions} />
+      <ReplyList
+        nodes={node.children}
+        topicId={topicId}
+        user={user}
+        depth={depth + 1}
+        reactions={reactions}
+        newSince={newSince}
+      />
     )}
   </li>
 );
 
-const ReplyList = ({ nodes, topicId, user, depth, reactions }: TreeProps & { nodes: TreeNode<ReplyView>[] }) => (
+const ReplyList = ({ nodes, topicId, user, depth, reactions, newSince }: TreeProps & { nodes: TreeNode<ReplyView>[] }) => (
   <ul class={depth === 0 || depth >= MAX_INDENT_DEPTH ? "replies" : "replies nested"}>
     {nodes.map((n) => (
-      <ReplyItem node={n} topicId={topicId} user={user} depth={depth} reactions={reactions} />
+      <ReplyItem node={n} topicId={topicId} user={user} depth={depth} reactions={reactions} newSince={newSince} />
     ))}
   </ul>
 );
@@ -155,11 +167,14 @@ export const TopicPage = ({
   replies,
   user,
   reactions,
+  newSince,
 }: {
   topic: TopicView;
   replies: TreeNode<ReplyView>[];
-  user: User;
+  user: Member;
   reactions: ReactionMap;
+  /** Última visita anterior: respostas de outras pessoas depois disso ganham a marca "nova". */
+  newSince: Date | null;
 }) => (
   <Layout title={topic.title} user={user}>
     <div class="breadcrumb">
@@ -197,7 +212,7 @@ export const TopicPage = ({
       {topic.replyCount === 0 ? "Nenhuma resposta ainda" : topic.replyCount === 1 ? "1 resposta" : `${topic.replyCount} respostas`}
     </h2>
     {replies.length > 0 && (
-      <ReplyList nodes={replies} topicId={topic.id} user={user} depth={0} reactions={reactions} />
+      <ReplyList nodes={replies} topicId={topic.id} user={user} depth={0} reactions={reactions} newSince={newSince} />
     )}
 
     <div class="box">

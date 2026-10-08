@@ -2,13 +2,17 @@ import { eq } from "drizzle-orm";
 import { createMiddleware } from "hono/factory";
 import { getDb } from "../db";
 import { type User, users } from "../db/schema";
+import { countUnread } from "../lib/notifications";
 import { findPendingInvite } from "../routes/welcome";
 import { ErrorPage, NotInvitedPage } from "../views/errors";
 import { ACCESS_JWT_HEADER, verifyAccessJwt } from "./access";
 
+/** Usuário logado, com o número de notificações não lidas (preenchido para membros). */
+export type Member = User & { unreadCount?: number };
+
 export type AuthVariables = {
   email: string;
-  user: User | null;
+  user: Member | null;
 };
 
 export type AppEnv = { Bindings: Env; Variables: AuthVariables };
@@ -57,7 +61,10 @@ export const authenticate = createMiddleware<AppEnv>(async (c, next) => {
 /** Só deixa passar membros ativos. */
 export const requireMember = createMiddleware<AppEnv>(async (c, next) => {
   const user = c.get("user");
-  if (user?.status === "active") return next();
+  if (user?.status === "active") {
+    c.set("user", { ...user, unreadCount: await countUnread(getDb(c.env.DB), user.id) });
+    return next();
+  }
 
   if (user?.status === "disabled") {
     return c.html(

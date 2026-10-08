@@ -2,9 +2,11 @@ import { aliasedTable, and, desc, eq, isNull, sql } from "drizzle-orm";
 import { type Context, Hono } from "hono";
 import type { AppEnv } from "../auth/middleware";
 import { type Db, getDb } from "../db";
-import { replies, topics, type User, users } from "../db/schema";
+import { replies, topicReads, topics, type User, users } from "../db/schema";
 import { renderMarkdown } from "../lib/markdown";
+import { countUnread, markTopicNotificationsRead, notifyReply } from "../lib/notifications";
 import { loadReactions } from "../lib/reactions";
+import { getLastRead, markTopicRead, readState } from "../lib/reads";
 import {
   bodyError,
   canDelete,
@@ -16,7 +18,7 @@ import {
 } from "../lib/posts";
 import { buildTree } from "../lib/tree";
 import { ErrorPage } from "../views/errors";
-import { HomePage } from "../views/home";
+import { HomePage, type TopicRow } from "../views/home";
 import { TopicFormPage } from "../views/topic-form";
 import {
   EditReplyPage,
@@ -105,8 +107,11 @@ export const topicRoutes = new Hono<AppEnv>();
 
 const lastReplier = aliasedTable(users, "last_replier");
 
+type IndexRow = Omit<TopicRow, "readState"> & { lastReadAt: Date | null };
+
 topicRoutes.get("/", async (c) => {
-  const rows = await getDb(c.env.DB)
+  // Anotado à mão: com dois leftJoin o Drizzle não consegue inferir o tipo das linhas.
+  const rows: IndexRow[] = await getDb(c.env.DB)
     .select({
       id: topics.id,
       title: topics.title,
@@ -114,16 +119,19 @@ topicRoutes.get("/", async (c) => {
       replyCount: topics.replyCount,
       lastActivityAt: topics.lastActivityAt,
       lastReplyBy: lastReplier.displayName,
+      lastReadAt: topicReads.lastReadAt,
     })
     .from(topics)
     .innerJoin(users, eq(topics.authorId, users.id))
     .leftJoin(lastReplier, eq(topics.lastReplyBy, lastReplier.id))
+    .leftJoin(topicReads, and(eq(topicReads.topicId, topics.id), eq(topicReads.userId, me(c).id)))
     .where(isNull(topics.deletedAt))
     .orderBy(desc(topics.lastActivityAt), desc(topics.id))
     .limit(50)
     .all();
 
-  return c.html(<HomePage topics={rows} user={me(c)} />);
+  const withState = rows.map((t) => ({ ...t, readState: readState(t.lastActivityAt, t.lastReadAt) }));
+  return c.html(<HomePage topics={withState} user={me(c)} />);
 });
 
 // --- Tópicos ---
@@ -157,11 +165,26 @@ topicRoutes.get("/t/:id{[0-9]+}", async (c) => {
   const topic = await loadTopic(db, id);
   if (!topic) return notFound(c);
 
-  const [replyRows, reactions] = await Promise.all([
+  const user = me(c);
+  const [replyRows, reactions, previousRead] = await Promise.all([
     loadReplies(db, id),
-    loadReactions(db, me(c).id, { topicId: id }),
+    loadReactions(db, user.id, { topicId: id }),
+    getLastRead(db, user.id, id),
   ]);
-  return c.html(<TopicPage topic={topic} replies={buildTree(replyRows)} user={me(c)} reactions={reactions} />);
+
+  // Abrir o tópico marca como lido, junto com as notificações dele.
+  await db.batch([markTopicRead(db, user.id, id), markTopicNotificationsRead(db, user.id, id)]);
+  const unreadCount = await countUnread(db, user.id);
+
+  return c.html(
+    <TopicPage
+      topic={topic}
+      replies={buildTree(replyRows)}
+      user={{ ...user, unreadCount }}
+      reactions={reactions}
+      newSince={previousRead}
+    />,
+  );
 });
 
 topicRoutes.get("/t/:id{[0-9]+}/editar", async (c) => {
@@ -271,6 +294,12 @@ topicRoutes.post("/t/:id{[0-9]+}/respostas", async (c) => {
       })
       .where(eq(topics.id, topic.id)),
   ]);
+  await notifyReply(db, {
+    recipientId: parent ? parent.authorId : topic.authorId,
+    actorId: me(c).id,
+    topicId: topic.id,
+    replyId: inserted[0].id,
+  });
   return c.redirect(`/t/${topic.id}#r-${inserted[0].id}`, 303);
 });
 

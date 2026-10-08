@@ -190,6 +190,6 @@ Como cota disponível se calcula: `invite_quota` menos os convites `pending` ou 
 4. ✅ Tópicos e respostas com o editor
 5. ✅ Votos e aplausos
 6. ✅ Convites (com integração na API do Access)
-7. Notificações e marcador de "novo"
+7. ✅ Notificações e marcador de "novo"
 8. Perfil e admin
 9. Configurar o Access no `workers.dev` e fazer o deploy (guia em `docs/deploy.md`)

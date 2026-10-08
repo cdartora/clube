@@ -9,6 +9,7 @@ export type TopicRow = {
   replyCount: number;
   lastActivityAt: Date;
   lastReplyBy: string | null;
+  readState: "new" | "updated" | "read";
 };
 
 export const HomePage = ({ topics, user }: { topics: TopicRow[]; user: User }) => (
@@ -35,11 +36,13 @@ export const HomePage = ({ topics, user }: { topics: TopicRow[]; user: User }) =
           </tr>
         ) : (
           topics.map((t) => (
-            <tr>
+            <tr class={t.readState === "read" ? "" : "unread"}>
               <td class="col-topic">
                 <a href={`/t/${t.id}`} class="topic-title">
                   {t.title}
                 </a>
+                {t.readState === "new" && <span class="badge-new">novo</span>}
+                {t.readState === "updated" && <span class="badge-new">novas respostas</span>}
                 <div class="meta">
                   por {t.author}
                   <span class="mobile-only"> · {t.replyCount} resp.</span>

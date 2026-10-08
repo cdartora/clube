@@ -616,6 +616,56 @@ a.button:hover {
   margin-top: 8px;
 }
 
+/* Notificações e marcas de "novo" */
+
+.badge {
+  display: inline-block;
+  min-width: 18px;
+  margin-left: 4px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--link-hover);
+  color: #fff;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.badge-new {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 5px;
+  border: 1px solid #e0702a;
+  border-radius: 3px;
+  background: #fff1e6;
+  color: #c4501a;
+  font-size: 10px;
+  font-weight: bold;
+  line-height: 16px;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.forum-table tr.unread td:first-child {
+  box-shadow: inset 3px 0 0 #e0702a;
+}
+
+.forum-table tr:not(.unread) .topic-title {
+  font-weight: normal;
+}
+
+.reply-post.is-new {
+  border-color: #e0702a;
+}
+
+.reply-post .badge-new {
+  float: right;
+}
+
+.notif-icon {
+  font-size: 13px;
+}
+
 /* Convites */
 
 .notice {

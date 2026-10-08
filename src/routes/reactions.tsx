@@ -11,6 +11,7 @@ import {
   reactionKey,
   type Target,
 } from "../lib/reactions";
+import { notifyClap } from "../lib/notifications";
 import { ErrorPage } from "../views/errors";
 import { Reactions } from "../views/reactions";
 
@@ -89,6 +90,13 @@ reactionRoutes.post("/aplaudir", async (c) => {
   const { target, error } = await resolveTarget(c, form);
   if (error) return error;
 
-  await addClaps(getDb(c.env.DB), me(c).id, target, count);
+  const db = getDb(c.env.DB);
+  await addClaps(db, me(c).id, target, count);
+  await notifyClap(db, {
+    recipientId: target.authorId,
+    actorId: me(c).id,
+    topicId: target.topicId,
+    replyId: target.type === "reply" ? target.id : null,
+  });
   return respond(c, target);
 });

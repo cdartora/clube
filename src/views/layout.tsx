@@ -4,7 +4,7 @@ import type { User } from "../db/schema";
 
 type LayoutProps = {
   title?: string;
-  user?: Pick<User, "displayName" | "username"> | null;
+  user?: (Pick<User, "displayName" | "username"> & { unreadCount?: number }) | null;
   children: Child;
 };
 
@@ -34,6 +34,11 @@ export const Layout = ({ title, user, children }: LayoutProps) => (
             {user && <a href="/novo">Novo tópico</a>}
             {user && <a href="/convites">Convites</a>}
             {user && <a href="/regras">Regras</a>}
+            {user && (
+              <a href="/notificacoes" class={user.unreadCount ? "notif-link has-unread" : "notif-link"}>
+                Notificações{user.unreadCount ? <span class="badge">{user.unreadCount}</span> : null}
+              </a>
+            )}
             {user && <span class="navbar-user">Olá, {user.displayName}</span>}
           </nav>
           <main>{children}</main>
