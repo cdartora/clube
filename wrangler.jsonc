@@ -11,8 +11,7 @@
     {
       "binding": "DB",
       "database_name": "clube",
-      // Troque pelo id real depois de rodar `npx wrangler d1 create clube`.
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "6e007bfa-35f5-4509-855c-844af898c38b",
       "migrations_dir": "drizzle/migrations"
     }
   ],
