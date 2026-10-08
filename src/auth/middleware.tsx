@@ -2,7 +2,8 @@ import { eq } from "drizzle-orm";
 import { createMiddleware } from "hono/factory";
 import { getDb } from "../db";
 import { type User, users } from "../db/schema";
-import { ErrorPage } from "../views/errors";
+import { findPendingInvite } from "../routes/welcome";
+import { ErrorPage, NotInvitedPage } from "../views/errors";
 import { ACCESS_JWT_HEADER, verifyAccessJwt } from "./access";
 
 export type AuthVariables = {
@@ -66,11 +67,9 @@ export const requireMember = createMiddleware<AppEnv>(async (c, next) => {
       403,
     );
   }
-  return c.html(
-    <ErrorPage title="Você não foi convidado">
-      O Clube é fechado e só entra quem recebe convite de um membro. Se alguém te convidou, confira
-      se entrou com o mesmo email do convite ({c.get("email")}).
-    </ErrorPage>,
-    403,
-  );
+
+  // Ainda sem conta: quem tem convite pendente vai para as boas-vindas.
+  const invite = await findPendingInvite(getDb(c.env.DB), c.get("email"));
+  if (invite) return c.redirect("/boas-vindas");
+  return c.html(<NotInvitedPage email={c.get("email")} />, 403);
 });

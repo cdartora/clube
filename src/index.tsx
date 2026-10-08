@@ -1,14 +1,22 @@
 import { desc, eq, isNull } from "drizzle-orm";
 import { Hono } from "hono";
+import { csrf } from "hono/csrf";
 import { type AppEnv, authenticate, requireMember } from "./auth/middleware";
 import { getDb } from "./db";
 import { topics, users } from "./db/schema";
-import { HomePage } from "./views/home";
+import { welcome } from "./routes/welcome";
 import { ErrorPage } from "./views/errors";
+import { HomePage } from "./views/home";
+import { RulesPage } from "./views/rules";
 
 const app = new Hono<AppEnv>();
 
-app.use(authenticate, requireMember);
+app.use(csrf(), authenticate);
+
+// Boas-vindas vem antes do requireMember: é por aqui que convidados viram membros.
+app.route("/boas-vindas", welcome);
+
+app.use(requireMember);
 
 app.get("/", async (c) => {
   const db = getDb(c.env.DB);
@@ -28,6 +36,8 @@ app.get("/", async (c) => {
 
   return c.html(<HomePage topics={rows} user={c.get("user")!} />);
 });
+
+app.get("/regras", (c) => c.html(<RulesPage user={c.get("user")!} />));
 
 app.notFound((c) =>
   c.html(

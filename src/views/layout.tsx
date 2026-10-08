@@ -29,6 +29,7 @@ export const Layout = ({ title, user, children }: LayoutProps) => (
           </header>
           <nav class="navbar">
             <a href="/">Índice</a>
+            {user && <a href="/regras">Regras</a>}
             {user && <span class="navbar-user">Olá, {user.displayName}</span>}
           </nav>
           <main>{children}</main>

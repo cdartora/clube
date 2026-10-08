@@ -57,6 +57,7 @@ Outros casos:
 - **Desativar usuário** (admin): marca `disabled`, remove do grupo do Access e revoga as sessões dele.
 - **Email autenticado sem usuário e sem convite**, que não deveria acontecer: página "você não foi convidado".
 - **Primeiro admin**: criado por um script de seed. Os 3 amigos iniciais são convidados pelo admin no fluxo normal.
+- **Mais de um membro convidou a mesma pessoa**: vale o convite mais antigo, e os outros são cancelados (a cota volta para quem convidou).
 
 ### Desenvolvimento local
 
@@ -185,7 +186,7 @@ Como cota disponível se calcula: `invite_quota` menos os convites `pending` ou 
 
 1. ✅ Scaffold: Hono, wrangler, D1, Drizzle, layout base e CSS
 2. ✅ Middleware de auth (JWT do Access + modo dev) e seed do admin
-3. Onboarding: tela de boas-vindas e criação de usuário
+3. ✅ Onboarding: tela de boas-vindas e criação de usuário (regras da casa em `src/content/rules.tsx`)
 4. Tópicos e respostas com o editor
 5. Votos e aplausos
 6. Convites (com integração na API do Access)

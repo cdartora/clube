@@ -50,6 +50,9 @@ Localmente não existe Cloudflare Access: o Worker considera que você entrou co
 src/
   index.tsx        rotas (Hono)
   auth/            validação do JWT do Access e middleware de login
+  routes/          rotas agrupadas por área (boas-vindas)
+  content/         textos do fórum (regras da casa)
+  lib/             regras de negócio pequenas (validação de apelido)
   db/schema.ts     tabelas (Drizzle)
   views/           páginas em JSX
 public/            CSS e arquivos estáticos

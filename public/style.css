@@ -157,6 +157,83 @@ a:hover {
   text-align: center;
 }
 
+/* Formulários */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  max-width: 560px;
+}
+
+.form label {
+  margin-top: 14px;
+  font-weight: bold;
+}
+
+.form .hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.form input:not([type="checkbox"]) {
+  margin-top: 4px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+}
+
+.form input:focus {
+  outline: 2px solid var(--masthead-from);
+  outline-offset: 0;
+}
+
+.form .checkbox {
+  font-weight: normal;
+}
+
+.field-error {
+  margin-top: 4px;
+  color: var(--link-hover);
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.button {
+  align-self: flex-start;
+  margin-top: 18px;
+  padding: 6px 18px;
+  border: 1px solid var(--head-to);
+  border-radius: 4px;
+  background: linear-gradient(to bottom, var(--head-from), var(--head-to));
+  color: var(--head-text);
+  font: bold 14px Verdana, Tahoma, sans-serif;
+  cursor: pointer;
+}
+
+.button:hover {
+  filter: brightness(1.1);
+}
+
+.rules-box {
+  margin: 18px 0 0;
+  padding: 4px 14px 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--row);
+}
+
+.rules-box legend {
+  padding: 0 6px;
+  font-weight: bold;
+}
+
+.rules li {
+  margin-bottom: 8px;
+}
+
 .footer {
   margin-top: 16px;
   color: var(--muted);
