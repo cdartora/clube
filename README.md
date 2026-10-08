@@ -55,7 +55,7 @@ src/
   lib/             regras de negócio pequenas (validação, Markdown, árvore de respostas)
   db/schema.ts     tabelas (Drizzle)
   views/           páginas em JSX
-public/            CSS, editor.js, favicon e htmx
+public/            CSS, app.js (editor e aplausos), favicon e htmx
 drizzle/migrations migrations SQL geradas pelo drizzle-kit
 scripts/           scripts de linha de comando (seed do admin)
 test/              testes

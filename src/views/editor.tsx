@@ -17,7 +17,7 @@ const TOOLS: { action: string; label: string; title: string }[] = [
 
 /**
  * Caixa de texto com barra de botões e prévia. O comportamento fica em
- * public/editor.js, por delegação de eventos, então funciona também em
+ * public/app.js, por delegação de eventos, então funciona também em
  * formulários que o htmx injeta depois.
  */
 export const Editor = ({ value, placeholder, rows = 10, autofocus }: EditorProps) => (

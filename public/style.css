@@ -430,6 +430,137 @@ a.button:hover {
   text-decoration: none;
 }
 
+/* Votos e aplausos */
+
+.reactions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vote,
+.clap {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
+}
+
+.vote button,
+.clap-button {
+  padding: 0 5px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  cursor: pointer;
+}
+
+.vote button:hover:not(:disabled),
+.clap-button:hover:not(:disabled) {
+  border-color: var(--border);
+  background: var(--row-alt);
+}
+
+.vote button:disabled,
+.clap-button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.vote-up.voted {
+  border-color: #e0702a;
+  background: #fff1e6;
+  color: #c4501a;
+}
+
+.vote-down.voted {
+  border-color: #4a6f95;
+  background: #e8eef6;
+  color: #2b4a6b;
+}
+
+.score {
+  min-width: 1.6em;
+  color: var(--text);
+  font-weight: bold;
+  text-align: center;
+}
+
+.score.positive {
+  color: #c4501a;
+}
+
+.score.negative {
+  color: #2b4a6b;
+}
+
+.clap-button {
+  font-size: 14px;
+  filter: grayscale(1);
+}
+
+.clap-button.clapped,
+.clap-button:hover:not(:disabled) {
+  filter: none;
+}
+
+.clap-button.bump {
+  animation: bump 0.25s ease-out;
+}
+
+@keyframes bump {
+  50% {
+    transform: scale(1.35);
+  }
+}
+
+.clap-count {
+  color: var(--text);
+  font-weight: bold;
+}
+
+.clappers {
+  position: relative;
+}
+
+.clappers summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.clappers summary::-webkit-details-marker {
+  display: none;
+}
+
+.clappers summary::after {
+  content: " ▾";
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.clappers-list {
+  position: absolute;
+  z-index: 1;
+  top: 100%;
+  left: 0;
+  min-width: 140px;
+  max-width: 260px;
+  margin-top: 4px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel);
+  box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.15);
+  color: var(--text);
+}
+
+.post-actions {
+  align-items: center;
+}
+
 .inline-form {
   display: inline;
 }

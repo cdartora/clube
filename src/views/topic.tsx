@@ -2,11 +2,13 @@ import { raw } from "hono/html";
 import type { User } from "../db/schema";
 import { formatDateTime } from "../lib/format";
 import { renderMarkdown } from "../lib/markdown";
+import { EMPTY_REACTIONS, type ReactionState, reactionKey } from "../lib/reactions";
 import { canDelete, canEdit } from "../lib/posts";
 import type { TreeNode } from "../lib/tree";
 import { Editor } from "./editor";
 import { FieldError } from "./form";
 import { Layout } from "./layout";
+import { Reactions } from "./reactions";
 
 // A partir daqui as respostas param de recuar, para não espremer o texto no celular.
 export const MAX_INDENT_DEPTH = 6;
@@ -19,9 +21,13 @@ export type TopicView = {
   authorName: string;
   authorUsername: string;
   replyCount: number;
+  score: number;
+  clapCount: number;
   createdAt: Date;
   updatedAt: Date | null;
 };
+
+export type ReactionMap = Map<string, ReactionState>;
 
 export type ReplyView = {
   id: number;
@@ -31,6 +37,7 @@ export type ReplyView = {
   authorName: string;
   authorUsername: string;
   score: number;
+  clapCount: number;
   createdAt: Date;
   updatedAt: Date | null;
   deletedAt: Date | null;
@@ -87,17 +94,9 @@ export const ReplyForm = ({
   </form>
 );
 
-const ReplyItem = ({
-  node,
-  topicId,
-  user,
-  depth,
-}: {
-  node: TreeNode<ReplyView>;
-  topicId: number;
-  user: User;
-  depth: number;
-}) => (
+type TreeProps = { topicId: number; user: User; depth: number; reactions: ReactionMap };
+
+const ReplyItem = ({ node, topicId, user, depth, reactions }: TreeProps & { node: TreeNode<ReplyView> }) => (
   <li class="reply" id={`r-${node.id}`}>
     {node.deletedAt ? (
       <div class="post reply-post removed">mensagem removida</div>
@@ -111,6 +110,14 @@ const ReplyItem = ({
         />
         <div class="post-body">{raw(renderMarkdown(node.bodyMd))}</div>
         <div class="post-actions">
+          <Reactions
+            type="reply"
+            id={node.id}
+            score={node.score}
+            clapCount={node.clapCount}
+            state={reactions.get(reactionKey("reply", node.id)) ?? EMPTY_REACTIONS}
+            isOwn={node.authorId === user.id}
+          />
           <a
             href={`/t/${topicId}/responder?para=${node.id}`}
             hx-get={`/t/${topicId}/responder?para=${node.id}`}
@@ -130,25 +137,15 @@ const ReplyItem = ({
       </div>
     )}
     {node.children.length > 0 && (
-      <ReplyList nodes={node.children} topicId={topicId} user={user} depth={depth + 1} />
+      <ReplyList nodes={node.children} topicId={topicId} user={user} depth={depth + 1} reactions={reactions} />
     )}
   </li>
 );
 
-const ReplyList = ({
-  nodes,
-  topicId,
-  user,
-  depth,
-}: {
-  nodes: TreeNode<ReplyView>[];
-  topicId: number;
-  user: User;
-  depth: number;
-}) => (
+const ReplyList = ({ nodes, topicId, user, depth, reactions }: TreeProps & { nodes: TreeNode<ReplyView>[] }) => (
   <ul class={depth === 0 || depth >= MAX_INDENT_DEPTH ? "replies" : "replies nested"}>
     {nodes.map((n) => (
-      <ReplyItem node={n} topicId={topicId} user={user} depth={depth} />
+      <ReplyItem node={n} topicId={topicId} user={user} depth={depth} reactions={reactions} />
     ))}
   </ul>
 );
@@ -157,10 +154,12 @@ export const TopicPage = ({
   topic,
   replies,
   user,
+  reactions,
 }: {
   topic: TopicView;
   replies: TreeNode<ReplyView>[];
   user: User;
+  reactions: ReactionMap;
 }) => (
   <Layout title={topic.title} user={user}>
     <div class="breadcrumb">
@@ -177,6 +176,14 @@ export const TopicPage = ({
       />
       <div class="post-body">{raw(renderMarkdown(topic.bodyMd))}</div>
       <div class="post-actions">
+        <Reactions
+          type="topic"
+          id={topic.id}
+          score={topic.score}
+          clapCount={topic.clapCount}
+          state={reactions.get(reactionKey("topic", topic.id)) ?? EMPTY_REACTIONS}
+          isOwn={topic.authorId === user.id}
+        />
         {canEdit(user, topic.authorId) && (
           <a href={`/t/${topic.id}/editar`} class="action">
             editar
@@ -189,7 +196,9 @@ export const TopicPage = ({
     <h2 class="section-heading">
       {topic.replyCount === 0 ? "Nenhuma resposta ainda" : topic.replyCount === 1 ? "1 resposta" : `${topic.replyCount} respostas`}
     </h2>
-    {replies.length > 0 && <ReplyList nodes={replies} topicId={topic.id} user={user} depth={0} />}
+    {replies.length > 0 && (
+      <ReplyList nodes={replies} topicId={topic.id} user={user} depth={0} reactions={reactions} />
+    )}
 
     <div class="box">
       <h3>Responder ao tópico</h3>

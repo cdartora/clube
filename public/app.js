@@ -1,6 +1,6 @@
-// Editor do Clube: barra de botões, atalhos, prévia e pequenos comportamentos de
-// página. Tudo por delegação de eventos, então funciona também em formulários que
-// o htmx injeta depois do carregamento.
+// JavaScript do Clube: editor (barra de botões, atalhos, prévia), aplausos e
+// pequenos comportamentos de página. Tudo por delegação de eventos, então
+// funciona também no HTML que o htmx injeta depois do carregamento.
 (() => {
   const editorOf = (el) => el.closest(".editor");
   const inputOf = (editor) => editor.querySelector(".editor-input");
@@ -103,6 +103,60 @@
       event.preventDefault();
       event.target.form.requestSubmit();
     }
+  });
+
+  // Aplausos: cada clique soma na hora na tela; depois de uma pausa, os cliques
+  // acumulados vão num único pedido ("+5") e o bloco volta atualizado do servidor.
+  const CLAP_DELAY_MS = 700;
+  const pendingClaps = new WeakMap();
+
+  const flushClaps = async (form) => {
+    const pending = pendingClaps.get(form);
+    pendingClaps.delete(form);
+    if (!pending) return;
+    const body = new URLSearchParams(new FormData(form));
+    body.set("count", String(pending.count));
+    const reactions = form.closest(".reactions");
+    try {
+      const res = await fetch(form.action, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded", "HX-Request": "true" },
+        body,
+      });
+      if (!res.ok) throw new Error(res.statusText);
+      const template = document.createElement("template");
+      template.innerHTML = (await res.text()).trim();
+      const fresh = template.content.firstElementChild;
+      reactions.replaceWith(fresh);
+      if (window.htmx) window.htmx.process(fresh);
+    } catch {
+      window.alert("Não foi possível registrar os aplausos. Tente de novo.");
+      window.location.reload();
+    }
+  };
+
+  document.addEventListener("submit", (event) => {
+    const form = event.target;
+    if (!form.matches("[data-clap-form]")) return;
+    event.preventDefault();
+
+    const pending = pendingClaps.get(form) ?? { count: 0, timer: 0 };
+    const left = Number(form.dataset.clapsLeft) - pending.count;
+    if (left <= 0) return;
+
+    pending.count += 1;
+    clearTimeout(pending.timer);
+    pending.timer = setTimeout(() => flushClaps(form), CLAP_DELAY_MS);
+    pendingClaps.set(form, pending);
+
+    const counter = form.querySelector(".clap-count");
+    counter.textContent = String(Number(counter.textContent) + 1);
+    const button = form.querySelector(".clap-button");
+    button.classList.add("clapped");
+    button.classList.remove("bump");
+    void button.offsetWidth; // reinicia a animação
+    button.classList.add("bump");
+    if (left - 1 <= 0) button.disabled = true;
   });
 
   // Confirmação antes de apagar.

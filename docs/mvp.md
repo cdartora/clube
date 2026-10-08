@@ -188,7 +188,7 @@ Como cota disponível se calcula: `invite_quota` menos os convites `pending` ou 
 2. ✅ Middleware de auth (JWT do Access + modo dev) e seed do admin
 3. ✅ Onboarding: tela de boas-vindas e criação de usuário (regras da casa em `src/content/rules.tsx`)
 4. ✅ Tópicos e respostas com o editor
-5. Votos e aplausos
+5. ✅ Votos e aplausos
 6. Convites (com integração na API do Access)
 7. Notificações e marcador de "novo"
 8. Perfil e admin

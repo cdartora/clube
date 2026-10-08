@@ -90,7 +90,10 @@ export const replies = sqliteTable(
   (t) => [index("replies_topic_idx").on(t.topicId)],
 );
 
-const targetType = () => text("target_type", { enum: ["topic", "reply"] }).notNull();
+export const TARGET_TYPES = ["topic", "reply"] as const;
+export type TargetType = (typeof TARGET_TYPES)[number];
+
+const targetType = () => text("target_type", { enum: TARGET_TYPES }).notNull();
 
 // Voto anônimo: +1 ou -1 por pessoa. A soma fica em topics.score / replies.score.
 export const votes = sqliteTable(
@@ -106,6 +109,7 @@ export const votes = sqliteTable(
   },
   (t) => [
     primaryKey({ columns: [t.userId, t.targetType, t.targetId] }),
+    index("votes_target_idx").on(t.targetType, t.targetId),
     check("votes_value_check", sql`${t.value} IN (-1, 1)`),
   ],
 );

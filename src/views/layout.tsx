@@ -19,7 +19,7 @@ export const Layout = ({ title, user, children }: LayoutProps) => (
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="stylesheet" href="/style.css" />
         <script src="/vendor/htmx-2.0.11.min.js" defer></script>
-        <script src="/editor.js" defer></script>
+        <script src="/app.js" defer></script>
       </head>
       <body>
         <div class="wrap">

@@ -4,6 +4,7 @@ import type { AppEnv } from "../auth/middleware";
 import { type Db, getDb } from "../db";
 import { replies, topics, type User, users } from "../db/schema";
 import { renderMarkdown } from "../lib/markdown";
+import { loadReactions } from "../lib/reactions";
 import {
   bodyError,
   canDelete,
@@ -50,6 +51,8 @@ const loadTopic = (db: Db, id: number): Promise<TopicView | undefined> =>
       authorName: users.displayName,
       authorUsername: users.username,
       replyCount: topics.replyCount,
+      score: topics.score,
+      clapCount: topics.clapCount,
       createdAt: topics.createdAt,
       updatedAt: topics.updatedAt,
     })
@@ -67,6 +70,7 @@ const replySelect = {
   authorName: users.displayName,
   authorUsername: users.username,
   score: replies.score,
+  clapCount: replies.clapCount,
   createdAt: replies.createdAt,
   updatedAt: replies.updatedAt,
   deletedAt: replies.deletedAt,
@@ -153,8 +157,11 @@ topicRoutes.get("/t/:id{[0-9]+}", async (c) => {
   const topic = await loadTopic(db, id);
   if (!topic) return notFound(c);
 
-  const tree = buildTree(await loadReplies(db, id));
-  return c.html(<TopicPage topic={topic} replies={tree} user={me(c)} />);
+  const [replyRows, reactions] = await Promise.all([
+    loadReplies(db, id),
+    loadReactions(db, me(c).id, { topicId: id }),
+  ]);
+  return c.html(<TopicPage topic={topic} replies={buildTree(replyRows)} user={me(c)} reactions={reactions} />);
 });
 
 topicRoutes.get("/t/:id{[0-9]+}/editar", async (c) => {
