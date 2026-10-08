@@ -159,6 +159,20 @@
     if (left - 1 <= 0) button.disabled = true;
   });
 
+  // Botão "Copiar link".
+  document.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-copy]");
+    if (!button) return;
+    try {
+      await navigator.clipboard.writeText(button.dataset.copy);
+      const label = button.textContent;
+      button.textContent = "Copiado!";
+      setTimeout(() => (button.textContent = label), 2000);
+    } catch {
+      button.previousElementSibling?.select?.();
+    }
+  });
+
   // Confirmação antes de apagar.
   document.addEventListener("submit", (event) => {
     const message = event.target.dataset.confirm;

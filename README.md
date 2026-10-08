@@ -61,10 +61,6 @@ scripts/           scripts de linha de comando (seed do admin)
 test/              testes
 ```
 
-## Deploy (ainda não feito)
+## Deploy
 
-1. `npx wrangler d1 create clube` e copie o `database_id` para o `wrangler.jsonc`
-2. `npm run db:migrate:remote`
-3. `npm run seed:admin -- --email … --username … --name … --remote`
-4. `npm run deploy`
-5. Ativar o Cloudflare Access no Worker e preencher `ACCESS_TEAM_DOMAIN` e `ACCESS_AUD` (passo 9 do `docs/mvp.md`)
+O passo a passo completo (D1, Access, token da API e variáveis) está em [`docs/deploy.md`](docs/deploy.md).

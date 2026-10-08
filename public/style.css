@@ -616,6 +616,54 @@ a.button:hover {
   margin-top: 8px;
 }
 
+/* Convites */
+
+.notice {
+  margin-bottom: 12px;
+  border-color: #6aa84f;
+  background: #f1f8ec;
+}
+
+.share {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.share .button {
+  margin-top: 0;
+}
+
+.copy-field {
+  flex: 1 1 220px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+}
+
+.button.whatsapp {
+  border-color: #128c4a;
+  background: linear-gradient(to bottom, #3cc46f, #128c4a);
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.box + .box,
+.box + .forum-table {
+  margin-top: 12px;
+}
+
+.invite-canceled td {
+  color: var(--muted);
+}
+
 .mobile-only {
   display: none;
 }

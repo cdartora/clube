@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { csrf } from "hono/csrf";
 import { type AppEnv, authenticate, requireMember } from "./auth/middleware";
 import type { User } from "./db/schema";
+import { inviteRoutes } from "./routes/invites";
 import { reactionRoutes } from "./routes/reactions";
 import { topicRoutes } from "./routes/topics";
 import { welcome } from "./routes/welcome";
@@ -19,6 +20,7 @@ app.use(requireMember);
 
 app.route("/", topicRoutes);
 app.route("/", reactionRoutes);
+app.route("/", inviteRoutes);
 
 app.get("/regras", (c) => c.html(<RulesPage user={c.get("user") as User} />));
 

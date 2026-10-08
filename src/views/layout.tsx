@@ -32,6 +32,7 @@ export const Layout = ({ title, user, children }: LayoutProps) => (
           <nav class="navbar">
             <a href="/">Índice</a>
             {user && <a href="/novo">Novo tópico</a>}
+            {user && <a href="/convites">Convites</a>}
             {user && <a href="/regras">Regras</a>}
             {user && <span class="navbar-user">Olá, {user.displayName}</span>}
           </nav>
