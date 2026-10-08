@@ -10,7 +10,7 @@ Fórum fechado para amigos próximos, sem anúncios. A inspiração é o TabNews
 | Auth | Cloudflare Access (login por código enviado ao email) |
 | Onboarding | Convite feito por membro, cota de 1 convite por membro |
 | Papéis | `admin` e `member` |
-| Interação | Reações com emoji; sem votos e sem TabCoins |
+| Interação | Sem votos e sem TabCoins; formato das reações **em aberto** (nada de emoji estilo Facebook) |
 | Editor | Amigável para quem não é técnico (barra de botões + visualização) |
 | Stack | Hono + D1 + Drizzle, HTML renderizado no servidor + htmx |
 | Domínio | Começa em `*.workers.dev`; domínio próprio fica para depois |
@@ -25,8 +25,8 @@ Navegador ──► Cloudflare Access ──► Worker (Hono) ──► D1
 
 - **Cloudflare Access** é o portão. Quem não está liberado não chega no Worker.
 - **Worker (Hono)** valida o JWT do Access (`Cf-Access-Jwt-Assertion`: assinatura, `aud`, expiração), descobre o email e carrega o usuário do D1.
-- **D1** guarda tudo: usuários, convites, tópicos, respostas, reações e notificações.
-- **Páginas**: JSX do próprio Hono (`hono/jsx`) renderizado no servidor. O htmx entra onde evita recarregar a página inteira (reagir, prévia do editor, marcar notificação como lida).
+- **D1** guarda tudo: usuários, convites, tópicos, respostas e notificações.
+- **Páginas**: JSX do próprio Hono (`hono/jsx`) renderizado no servidor. O htmx entra onde evita recarregar a página inteira (prévia do editor, abrir o formulário de resposta, marcar notificação como lida).
 
 ### Limites do free tier
 
@@ -72,7 +72,9 @@ Localmente não existe Access. Com a variável `DEV_USER_EMAIL` definida, e some
 
 **Tópicos e respostas**
 - Criar tópico (título e texto), editar e apagar os próprios.
-- Respostas em **lista plana, com "citar"**, como nos fóruns clássicos. É mais fácil de acompanhar do que árvore para quem não é técnico. O campo `parent_id` existe no banco caso a gente queira aninhar depois.
+- Respostas em **árvore**, como no TabNews: dá para responder o tópico ou qualquer resposta.
+- A indentação visual para num limite de profundidade (por exemplo, 6 níveis), para não espremer o texto no celular. Abaixo disso as respostas continuam alinhadas no último nível.
+- Cada resposta tem "responder", que abre o formulário logo abaixo dela via htmx.
 - O apagar é lógico (`deleted_at`) e a resposta aparece como "mensagem removida".
 
 **Página inicial**
@@ -86,16 +88,15 @@ Localmente não existe Access. Com a variável `DEV_USER_EMAIL` definida, e some
 - O conteúdo é guardado em Markdown, mas a pessoa não precisa saber disso: os botões escrevem a sintaxe.
 - A renderização usa `markdown-it` com HTML bruto desabilitado, para não abrir brecha de XSS.
 
-**Reações**
-- Um conjunto fixo de emojis (👍 ❤️ 😂 😮 😢 🔥) em tópicos e respostas.
-- Clicar de novo remove. Passar o mouse mostra quem reagiu.
+**Reações (em aberto)**
+- Emoji estilo Facebook está descartado. O formato ainda está em discussão e fica fora do scaffold até decidirmos.
 
 **Perfil**
 - Apelido, nome de exibição, bio curta, data de entrada e quem convidou.
 - Lista de tópicos da pessoa.
 
 **Notificações (dentro do app)**
-- Alguém respondeu seu tópico, citou você ou reagiu ao que você escreveu.
+- Alguém respondeu seu tópico ou uma resposta sua.
 - Contador no cabeçalho e página com a lista.
 
 **Admin**
@@ -109,9 +110,10 @@ Localmente não existe Access. Com a variável `DEV_USER_EMAIL` definida, e some
 - Digest semanal por email
 - Domínio próprio
 - PWA e notificação no celular
-- Respostas aninhadas, se a lista plana não funcionar
 
-## Modelo de dados (rascunho)
+## Modelo de dados
+
+O esquema real está em `src/db/schema.ts`. Resumo:
 
 ```
 users
@@ -131,19 +133,15 @@ topics
 
 replies
   id, topic_id -> topics.id, author_id -> users.id,
-  parent_id -> replies.id (nulo no MVP), quoted_reply_id -> replies.id,
+  parent_id -> replies.id (nulo = resposta direta ao tópico),
   body_md, created_at, updated_at, deleted_at
-
-reactions
-  user_id, target_type ('topic' | 'reply'), target_id, emoji, created_at
-  PK (user_id, target_type, target_id, emoji)
 
 topic_reads
   user_id, topic_id, last_read_at          -- marcador de "novo"
   PK (user_id, topic_id)
 
 notifications
-  id, user_id, actor_id, type ('reply' | 'quote' | 'reaction'),
+  id, user_id, actor_id, type ('reply'),
   topic_id, reply_id, read_at, created_at
 ```
 
@@ -162,11 +160,11 @@ Como cota disponível se calcula: `invite_quota` menos os convites `pending` ou 
 
 ## Ordem de implementação sugerida
 
-1. Scaffold: Hono, wrangler, D1, Drizzle, layout base e CSS
+1. ✅ Scaffold: Hono, wrangler, D1, Drizzle, layout base e CSS
 2. Middleware de auth (JWT do Access + modo dev) e seed do admin
 3. Onboarding: tela de boas-vindas e criação de usuário
 4. Tópicos e respostas com o editor
-5. Reações
+5. Reações (depois de decidir o formato)
 6. Convites (com integração na API do Access)
 7. Notificações e marcador de "novo"
 8. Perfil e admin
