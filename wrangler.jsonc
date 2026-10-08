@@ -1,0 +1,30 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "clube",
+  "main": "src/index.tsx",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "public"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "clube",
+      "database_id": "6e007bfa-35f5-4509-855c-844af898c38b",
+      "migrations_dir": "drizzle/migrations"
+    }
+  ],
+  "vars": {
+    // Preenchidos quando o Access for configurado (passo 9). Vazios = modo local com DEV_USER_EMAIL.
+    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_AUD": "",
+    // Grupo do Access cujos emails podem entrar; os convites adicionam e removem emails dele.
+    // O token (CF_API_TOKEN) é segredo: `npx wrangler secret put CF_API_TOKEN`.
+    "CF_ACCOUNT_ID": "",
+    "ACCESS_GROUP_ID": ""
+  },
+  "observability": {
+    "enabled": true
+  }
+}

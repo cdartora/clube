@@ -1,0 +1,3 @@
+# Copie para .dev.vars (que não vai para o git).
+# Sem Access configurado, o Worker local considera que você entrou com este email.
+DEV_USER_EMAIL=voce@exemplo.com

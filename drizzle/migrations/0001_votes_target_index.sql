@@ -1,0 +1,1 @@
+CREATE INDEX `votes_target_idx` ON `votes` (`target_type`,`target_id`);
