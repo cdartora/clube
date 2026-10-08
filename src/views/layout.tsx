@@ -16,8 +16,10 @@ export const Layout = ({ title, user, children }: LayoutProps) => (
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>{title ? `${title} · Clube` : "Clube"}</title>
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="stylesheet" href="/style.css" />
         <script src="/vendor/htmx-2.0.11.min.js" defer></script>
+        <script src="/editor.js" defer></script>
       </head>
       <body>
         <div class="wrap">
@@ -29,6 +31,7 @@ export const Layout = ({ title, user, children }: LayoutProps) => (
           </header>
           <nav class="navbar">
             <a href="/">Índice</a>
+            {user && <a href="/novo">Novo tópico</a>}
             {user && <a href="/regras">Regras</a>}
             {user && <span class="navbar-user">Olá, {user.displayName}</span>}
           </nav>

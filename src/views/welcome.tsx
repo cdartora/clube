@@ -1,5 +1,6 @@
 import { RulesList } from "../content/rules";
 import { DISPLAY_NAME_MAX } from "../lib/username";
+import { FieldError } from "./form";
 import { Layout } from "./layout";
 
 export type WelcomeValues = { username: string; displayName: string; acceptRules: boolean };
@@ -10,8 +11,6 @@ type Props = {
   values?: WelcomeValues;
   errors?: WelcomeErrors;
 };
-
-const FieldError = ({ msg }: { msg?: string }) => (msg ? <div class="field-error">{msg}</div> : null);
 
 export const WelcomePage = ({ inviterName, values, errors = {} }: Props) => (
   <Layout title="Boas-vindas">

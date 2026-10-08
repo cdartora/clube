@@ -1,4 +1,5 @@
 import type { User } from "../db/schema";
+import { formatDateTime } from "../lib/format";
 import { Layout } from "./layout";
 
 export type TopicRow = {
@@ -7,16 +8,16 @@ export type TopicRow = {
   author: string;
   replyCount: number;
   lastActivityAt: Date;
+  lastReplyBy: string | null;
 };
-
-const dateFmt = new Intl.DateTimeFormat("pt-BR", {
-  dateStyle: "short",
-  timeStyle: "short",
-  timeZone: "America/Sao_Paulo",
-});
 
 export const HomePage = ({ topics, user }: { topics: TopicRow[]; user: User }) => (
   <Layout user={user}>
+    <div class="toolbar">
+      <a href="/novo" class="button">
+        Novo tópico
+      </a>
+    </div>
     <table class="forum-table">
       <thead>
         <tr>
@@ -39,10 +40,16 @@ export const HomePage = ({ topics, user }: { topics: TopicRow[]; user: User }) =
                 <a href={`/t/${t.id}`} class="topic-title">
                   {t.title}
                 </a>
-                <div class="meta">por {t.author}</div>
+                <div class="meta">
+                  por {t.author}
+                  <span class="mobile-only"> · {t.replyCount} resp.</span>
+                </div>
               </td>
               <td class="col-num">{t.replyCount}</td>
-              <td class="col-last">{dateFmt.format(t.lastActivityAt)}</td>
+              <td class="col-last">
+                {formatDateTime(t.lastActivityAt)}
+                {t.lastReplyBy && <div class="meta">por {t.lastReplyBy}</div>}
+              </td>
             </tr>
           ))
         )}

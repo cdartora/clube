@@ -17,3 +17,11 @@ export const insertUser = (
   )
     .bind(id, email, username, displayName, status)
     .run();
+
+/** POST de formulário como se `email` estivesse logado, vindo do próprio site. */
+export const postAs = (email: string, path: string, fields: Record<string, string>, headers = {}) =>
+  requestAs(email, path, {
+    method: "POST",
+    headers: { Origin: "http://localhost", ...headers },
+    body: new URLSearchParams(fields),
+  });
