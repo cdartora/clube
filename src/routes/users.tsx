@@ -3,10 +3,11 @@ import { type Context, Hono } from "hono";
 import type { AppEnv, Member } from "../auth/middleware";
 import { getDb } from "../db";
 import { users } from "../db/schema";
+import { storeMedia } from "../lib/media";
 import { BIO_MAX, loadProfile, loadProfileActivity } from "../lib/users";
 import { DISPLAY_NAME_MAX } from "../lib/username";
 import { ErrorPage } from "../views/errors";
-import { ProfileEditPage, ProfilePage } from "../views/profile";
+import { type ProfileErrors, ProfileEditPage, ProfilePage } from "../views/profile";
 
 const me = (c: Context<AppEnv>) => c.get("user") as Member;
 
@@ -32,7 +33,7 @@ userRoutes.post("/perfil", async (c) => {
     displayName: String(form.displayName ?? "").trim(),
     bio: String(form.bio ?? "").replace(/\r\n?/g, "\n").trim(),
   };
-  const errors: { displayName?: string; bio?: string } = {};
+  const errors: ProfileErrors = {};
   if (!values.displayName) errors.displayName = "Conte como você quer ser chamado.";
   else if (values.displayName.length > DISPLAY_NAME_MAX) {
     errors.displayName = `Use no máximo ${DISPLAY_NAME_MAX} caracteres.`;
@@ -42,6 +43,20 @@ userRoutes.post("/perfil", async (c) => {
     return c.html(<ProfileEditPage user={me(c)} values={values} errors={errors} />, 400);
   }
 
-  await getDb(c.env.DB).update(users).set(values).where(eq(users.id, me(c).id));
+  // Foto nova (o navegador manda um arquivo vazio quando nenhum foi escolhido) ou pedido para tirar.
+  const oldAvatar = me(c).avatarKey;
+  let avatarKey = oldAvatar;
+  if (form.avatar instanceof File && form.avatar.size > 0) {
+    const stored = await storeMedia(c.env.MEDIA, form.avatar, { userId: me(c).id, folder: "avatars", imagesOnly: true });
+    if (!stored.ok) {
+      return c.html(<ProfileEditPage user={me(c)} values={values} errors={{ avatar: stored.error }} />, 400);
+    }
+    avatarKey = stored.key;
+  } else if (form.removeAvatar) {
+    avatarKey = null;
+  }
+
+  await getDb(c.env.DB).update(users).set({ ...values, avatarKey }).where(eq(users.id, me(c).id));
+  if (oldAvatar && oldAvatar !== avatarKey) await c.env.MEDIA.delete(oldAvatar);
   return c.redirect(`/u/${me(c).username}`, 303);
 });

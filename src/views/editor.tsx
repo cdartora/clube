@@ -1,5 +1,7 @@
 import { BODY_MAX } from "../lib/posts";
 
+const MEDIA_ACCEPT = "image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime";
+
 type EditorProps = {
   value?: string;
   placeholder?: string;
@@ -18,7 +20,8 @@ const TOOLS: { action: string; label: string; title: string }[] = [
 /**
  * Caixa de texto com barra de botões e prévia. O comportamento fica em
  * public/app.js, por delegação de eventos, então funciona também em
- * formulários que o htmx injeta depois.
+ * formulários que o htmx injeta depois. Fotos e vídeos vão para /midia e
+ * entram no texto como Markdown de imagem.
  */
 export const Editor = ({ value, placeholder, rows = 10, autofocus }: EditorProps) => (
   <div class="editor">
@@ -37,6 +40,10 @@ export const Editor = ({ value, placeholder, rows = 10, autofocus }: EditorProps
             {t.label}
           </button>
         ))}
+        <label class="editor-tool tool-media" title="Enviar foto ou vídeo (também dá para colar ou arrastar)">
+          Foto/vídeo
+          <input type="file" accept={MEDIA_ACCEPT} multiple hidden data-editor-upload />
+        </label>
       </div>
     </div>
     <textarea

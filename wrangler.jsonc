@@ -16,6 +16,10 @@
       "migrations_dir": "drizzle/migrations"
     }
   ],
+  "r2_buckets": [
+    // Fotos e vídeos dos posts e fotos de perfil. Servidos pelo próprio Worker (/m/...), atrás do Access.
+    { "binding": "MEDIA", "bucket_name": "clube-media" }
+  ],
   "vars": {
     "ACCESS_TEAM_DOMAIN": "lingering-mouse-80e0.cloudflareaccess.com",
     "ACCESS_AUD": "ed2e55afc429f69998cbb83281c95cda28afcc5fb1a4162c99a2782b8f46c3b8",
@@ -38,6 +42,7 @@
           "migrations_dir": "drizzle/migrations"
         }
       ],
+      "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "clube-media-staging" }],
       "vars": {
         "ACCESS_TEAM_DOMAIN": "lingering-mouse-80e0.cloudflareaccess.com",
         "ACCESS_AUD": "d5e3949c5461e529598253ec75e758fcafbe95095e1ababa2c9f03a19c95e084",
@@ -56,6 +61,7 @@
             "migrations_dir": "drizzle/migrations"
           }
         ],
+        "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "clube-media-staging" }],
         "vars": {
           "ACCESS_TEAM_DOMAIN": "lingering-mouse-80e0.cloudflareaccess.com",
           "ACCESS_AUD": "d5e3949c5461e529598253ec75e758fcafbe95095e1ababa2c9f03a19c95e084",

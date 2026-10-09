@@ -4,6 +4,7 @@ import { type AppEnv, authenticate, requireMember } from "./auth/middleware";
 import type { User } from "./db/schema";
 import { adminRoutes } from "./routes/admin";
 import { inviteRoutes } from "./routes/invites";
+import { mediaRoutes } from "./routes/media";
 import { notificationRoutes } from "./routes/notifications";
 import { reactionRoutes } from "./routes/reactions";
 import { topicRoutes } from "./routes/topics";
@@ -27,6 +28,7 @@ app.route("/", inviteRoutes);
 app.route("/", notificationRoutes);
 app.route("/", userRoutes);
 app.route("/", adminRoutes);
+app.route("/", mediaRoutes);
 
 app.get("/regras", (c) => c.html(<RulesPage user={c.get("user") as User} />));
 
