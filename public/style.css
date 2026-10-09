@@ -76,7 +76,9 @@ a:hover {
 
 .navbar {
   display: flex;
-  gap: 16px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 16px;
   padding: 6px 12px;
   margin-bottom: 12px;
   border: 1px solid var(--border);
@@ -89,6 +91,7 @@ a:hover {
 
 .navbar a {
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .navbar-user {
@@ -837,6 +840,44 @@ a.button:hover {
 }
 
 @media (max-width: 600px) {
+  .wrap {
+    padding: 8px;
+  }
+
+  .masthead {
+    padding: 12px 14px;
+  }
+
+  .logo {
+    font-size: 24px;
+  }
+
+  /* Celular: a saudação ganha uma linha só dela, em cima, e os links quebram
+     em quantas linhas precisarem, com área de toque maior. */
+  .navbar {
+    gap: 2px 14px;
+    padding: 6px 14px 8px;
+  }
+
+  .navbar a {
+    padding: 4px 0;
+  }
+
+  .navbar-user {
+    order: -1;
+    flex-basis: 100%;
+    margin: 0 0 2px;
+    padding-bottom: 4px;
+    border-bottom: 1px dashed var(--border);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .navbar-user a {
+    padding: 0;
+  }
+
   .forum-table .col-num,
   .forum-table .col-last {
     display: none;
