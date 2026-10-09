@@ -226,6 +226,11 @@ a:hover {
   filter: brightness(1.1);
 }
 
+form.submitting [type="submit"] {
+  opacity: 0.6;
+  cursor: progress;
+}
+
 .rules-box {
   margin: 18px 0 0;
   padding: 4px 14px 0;

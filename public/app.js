@@ -178,4 +178,24 @@
     const message = event.target.dataset.confirm;
     if (message && !window.confirm(message)) event.preventDefault();
   });
+
+  // Envio duplo: enquanto a próxima página não chega, novos cliques em
+  // "Responder" (ou em qualquer botão de envio) são ignorados. Os botões não
+  // são desativados porque botão desativado não manda o próprio name/value.
+  document.addEventListener("submit", (event) => {
+    const form = event.target;
+    if (event.defaultPrevented || form.matches("[data-clap-form], [hx-post]")) return;
+    if (form.classList.contains("submitting")) return event.preventDefault();
+    form.classList.add("submitting");
+    form.setAttribute("aria-busy", "true");
+  });
+
+  // Voltar com o botão do navegador traz a página da memória: libera os formulários.
+  window.addEventListener("pageshow", (event) => {
+    if (!event.persisted) return;
+    document.querySelectorAll("form.submitting").forEach((form) => {
+      form.classList.remove("submitting");
+      form.removeAttribute("aria-busy");
+    });
+  });
 })();

@@ -1,4 +1,4 @@
-import { aliasedTable, and, desc, eq, isNull, sql } from "drizzle-orm";
+import { aliasedTable, and, desc, eq, gte, isNull, sql } from "drizzle-orm";
 import { type Context, Hono } from "hono";
 import type { AppEnv } from "../auth/middleware";
 import { type Db, getDb } from "../db";
@@ -104,6 +104,30 @@ const parseId = (raw: string | undefined) => {
 export const topicRoutes = new Hono<AppEnv>();
 
 // --- Índice ---
+
+// Cliques repetidos em "Responder" mandam o mesmo texto várias vezes.
+const DUPLICATE_WINDOW_MS = 60_000;
+
+/** Resposta idêntica que a mesma pessoa acabou de publicar no mesmo lugar, se houver. */
+const findRecentDuplicate = (
+  db: Db,
+  reply: { topicId: number; parentId: number | null; authorId: number; bodyMd: string },
+  now: Date,
+) =>
+  db
+    .select({ id: replies.id })
+    .from(replies)
+    .where(
+      and(
+        eq(replies.topicId, reply.topicId),
+        reply.parentId ? eq(replies.parentId, reply.parentId) : isNull(replies.parentId),
+        eq(replies.authorId, reply.authorId),
+        eq(replies.bodyMd, reply.bodyMd),
+        isNull(replies.deletedAt),
+        gte(replies.createdAt, new Date(now.getTime() - DUPLICATE_WINDOW_MS)),
+      ),
+    )
+    .get();
 
 const lastReplier = aliasedTable(users, "last_replier");
 
@@ -280,6 +304,13 @@ topicRoutes.post("/t/:id{[0-9]+}/respostas", async (c) => {
   }
 
   const now = new Date();
+  const duplicate = await findRecentDuplicate(
+    db,
+    { topicId: topic.id, parentId, authorId: me(c).id, bodyMd: body },
+    now,
+  );
+  if (duplicate) return c.redirect(`/t/${topic.id}#r-${duplicate.id}`, 303);
+
   const [inserted] = await db.batch([
     db
       .insert(replies)
