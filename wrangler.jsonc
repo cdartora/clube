@@ -50,6 +50,24 @@
         "CF_ACCOUNT_ID": "",
         // Grupo separado (ex.: clube-staging): convites feitos no staging não liberam ninguém na produção.
         "ACCESS_GROUP_ID": ""
+      },
+      // Previews (`wrangler preview --env staging`, uma por branch). Não herdam nada de cima:
+      // repetem o banco e as variáveis do staging. Mantenha os valores iguais aos de `env.staging`.
+      "previews": {
+        "d1_databases": [
+          {
+            "binding": "DB",
+            "database_name": "clube-staging",
+            "database_id": "00000000-0000-0000-0000-000000000000",
+            "migrations_dir": "drizzle/migrations"
+          }
+        ],
+        "vars": {
+          "ACCESS_TEAM_DOMAIN": "",
+          "ACCESS_AUD": "",
+          "CF_ACCOUNT_ID": "",
+          "ACCESS_GROUP_ID": ""
+        }
       }
     }
   }

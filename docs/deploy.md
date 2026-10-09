@@ -121,10 +121,14 @@ Em **Workers & Pages › (Worker) › Settings › Builds**, conecte o repositó
 |---|---|---|
 | Branch de produção | `main` | `stage` |
 | Comando de deploy | `npx wrangler deploy` | `npx wrangler deploy --env staging` |
-| Builds de outras branches | desligado | ligado |
-| Comando para outras branches | — | `npx wrangler versions upload --env staging` |
+| Preview builds | desligado | ligado |
+| Preview command | — | `npx wrangler preview --env staging` |
 
-Com isso, cada push em uma branch de PR gera uma preview URL do `clube-staging` (aparece no check do PR no
-GitHub), protegida pelo Access das Preview URLs. As migrations não rodam sozinhas: quando um PR trouxer
+O `--env staging` é obrigatório nos dois comandos: sem ele, o wrangler usa a configuração de produção.
+As previews usam o bloco `env.staging.previews` do `wrangler.jsonc` (mesmo banco e variáveis do staging) e
+têm segredos próprios, compartilhados por todas elas: `npx wrangler preview base-config secret put CF_API_TOKEN --env staging`.
+
+Com isso, cada push em uma branch de PR gera uma preview do `clube-staging` (aparece no check do PR no
+GitHub), protegida pelo Access. As migrations não rodam sozinhas: quando um PR trouxer
 migration nova, rode `npm run db:migrate:staging` antes de testar a preview, e `npm run db:migrate:remote`
 antes do merge em `main`.
