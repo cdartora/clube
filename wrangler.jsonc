@@ -52,7 +52,7 @@
           {
             "binding": "DB",
             "database_name": "clube-staging",
-            "database_id": "00000000-0000-0000-0000-000000000000",
+            "database_id": "4125ca7a-6603-4c5b-8193-0f1e4ab62bd8",
             "migrations_dir": "drizzle/migrations"
           }
         ],
