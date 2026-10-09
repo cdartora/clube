@@ -48,6 +48,15 @@ describe("tópicos", () => {
     expect(await page(BETO, "/")).toContain(`href="/t/${id}"`);
   });
 
+  it("manda o editor como textarea com Markdown e barra de botões (o editor visual vem do JS)", async () => {
+    const html = await page(ANA, "/novo");
+    expect(html).toContain('<textarea name="body" class="editor-input"');
+    expect(html).toContain('data-editor-action="bold"');
+    expect(html).toContain('data-editor-action="orderedList"');
+    expect(html).toContain("data-editor-upload");
+    expect(html).not.toContain("Visualizar");
+  });
+
   it("valida título e texto", async () => {
     const res = await postAs(ANA, "/novo", { title: "oi", body: "   " });
     expect(res.status).toBe(400);
