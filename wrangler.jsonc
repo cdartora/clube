@@ -42,8 +42,26 @@
         "ACCESS_TEAM_DOMAIN": "lingering-mouse-80e0.cloudflareaccess.com",
         "ACCESS_AUD": "d5e3949c5461e529598253ec75e758fcafbe95095e1ababa2c9f03a19c95e084",
         "CF_ACCOUNT_ID": "dcd03d86f33761b593db669aba821f8a",
-        // Grupo separado (clube-staging): convites feitos no staging não liberam ninguém na produção.
+        // Grupo separado (ex.: clube-staging): convites feitos no staging não liberam ninguém na produção.
         "ACCESS_GROUP_ID": "cdb8acf4-564f-4cb1-923a-60a765a20b26"
+      },
+      // Previews (`wrangler preview --env staging`, uma por branch). Não herdam nada de cima:
+      // repetem o banco e as variáveis do staging. Mantenha os valores iguais aos de `env.staging`.
+      "previews": {
+        "d1_databases": [
+          {
+            "binding": "DB",
+            "database_name": "clube-staging",
+            "database_id": "4125ca7a-6603-4c5b-8193-0f1e4ab62bd8",
+            "migrations_dir": "drizzle/migrations"
+          }
+        ],
+        "vars": {
+          "ACCESS_TEAM_DOMAIN": "lingering-mouse-80e0.cloudflareaccess.com",
+          "ACCESS_AUD": "d5e3949c5461e529598253ec75e758fcafbe95095e1ababa2c9f03a19c95e084",
+          "CF_ACCOUNT_ID": "dcd03d86f33761b593db669aba821f8a",
+          "ACCESS_GROUP_ID": "cdb8acf4-564f-4cb1-923a-60a765a20b26"
+        }
       }
     }
   }
