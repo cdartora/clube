@@ -7,6 +7,8 @@
   "assets": {
     "directory": "public"
   },
+  // Produção não tem preview URLs: elas usariam o banco de produção. Previews ficam no staging.
+  "preview_urls": false,
   "d1_databases": [
     {
       "binding": "DB",
@@ -18,6 +20,7 @@
   "vars": {
     // Preenchidos quando o Access for configurado (passo 9). Vazios = modo local com DEV_USER_EMAIL.
     "ACCESS_TEAM_DOMAIN": "",
+    // AUD Tag da aplicação do Access. Se houver mais de uma (ex.: workers.dev e preview URLs), separe por vírgula.
     "ACCESS_AUD": "",
     // Grupo do Access cujos emails podem entrar; os convites adicionam e removem emails dele.
     // O token (CF_API_TOKEN) é segredo: `npx wrangler secret put CF_API_TOKEN`.
@@ -26,5 +29,28 @@
   },
   "observability": {
     "enabled": true
+  },
+  "env": {
+    // Staging: Worker `clube-staging`, com banco e grupo do Access próprios. Veja docs/deploy.md.
+    // `vars` e `d1_databases` não são herdados do topo, então são repetidos aqui.
+    "staging": {
+      "preview_urls": true,
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "clube-staging",
+          // Troque pelo ID que `npx wrangler d1 create clube-staging` mostrar.
+          "database_id": "00000000-0000-0000-0000-000000000000",
+          "migrations_dir": "drizzle/migrations"
+        }
+      ],
+      "vars": {
+        "ACCESS_TEAM_DOMAIN": "",
+        "ACCESS_AUD": "",
+        "CF_ACCOUNT_ID": "",
+        // Grupo separado (ex.: clube-staging): convites feitos no staging não liberam ninguém na produção.
+        "ACCESS_GROUP_ID": ""
+      }
+    }
   }
 }

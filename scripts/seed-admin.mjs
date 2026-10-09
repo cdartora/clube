@@ -2,6 +2,7 @@
 //
 //   npm run seed:admin -- --email voce@exemplo.com --username voce --name "Seu Nome"
 //   npm run seed:admin -- --email ... --username ... --name ... --remote   (banco de produção)
+//   npm run seed:admin -- --email ... --username ... --name ... --staging  (banco do staging)
 
 import { spawnSync } from "node:child_process";
 import { parseArgs } from "node:util";
@@ -12,6 +13,7 @@ const { values } = parseArgs({
     username: { type: "string" },
     name: { type: "string" },
     remote: { type: "boolean", default: false },
+    staging: { type: "boolean", default: false },
   },
 });
 
@@ -37,7 +39,9 @@ const sql = `INSERT INTO users (email, username, display_name, role) VALUES (${q
 
 const result = spawnSync(
   "npx",
-  ["wrangler", "d1", "execute", "clube", values.remote ? "--remote" : "--local", "--command", sql],
+  values.staging
+    ? ["wrangler", "d1", "execute", "clube-staging", "--remote", "--env", "staging", "--command", sql]
+    : ["wrangler", "d1", "execute", "clube", values.remote ? "--remote" : "--local", "--command", sql],
   { stdio: "inherit" },
 );
 

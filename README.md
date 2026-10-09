@@ -58,7 +58,9 @@ Mudou o `database_id` no `wrangler.jsonc`? O wrangler cria um banco local novo e
 | `npm run db:generate` | Gera uma migration nova a partir de `src/db/schema.ts` |
 | `npm run db:migrate:local` | Aplica as migrations no banco local |
 | `npm run db:migrate:remote` | Aplica as migrations no D1 de produção |
-| `npm run seed:admin -- --email … --username … --name …` | Cria um admin (`--remote` para produção) |
+| `npm run db:migrate:staging` | Aplica as migrations no D1 do staging |
+| `npm run deploy:staging` | Sobe o Worker de staging (`clube-staging`) |
+| `npm run seed:admin -- --email … --username … --name …` | Cria um admin (`--remote` para produção, `--staging` para o staging) |
 | `npm run cf-typegen` | Regenera `worker-configuration.d.ts` depois de mudar o `wrangler.jsonc` |
 
 ## Estrutura
@@ -81,3 +83,6 @@ test/              testes
 ## Deploy
 
 O passo a passo completo (D1, Access, token da API e variáveis) está em [`docs/deploy.md`](docs/deploy.md).
+
+Branches: `main` é produção, `stage` é staging. PRs vão para `stage` e ganham uma preview URL; o staging
+vai para a produção num PR de `stage` para `main`.
