@@ -20,6 +20,8 @@ export const users = sqliteTable("users", {
   username: text("username").notNull().unique(),
   displayName: text("display_name").notNull(),
   bio: text("bio").notNull().default(""),
+  // Chave da foto de perfil no R2 (bucket MEDIA). Nula = mostra a inicial do nome.
+  avatarKey: text("avatar_key"),
   role: text("role", { enum: ["admin", "member"] }).notNull().default("member"),
   inviteQuota: integer("invite_quota").notNull().default(1),
   invitedBy: integer("invited_by").references((): AnySQLiteColumn => users.id),

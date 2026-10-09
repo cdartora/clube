@@ -91,6 +91,72 @@
     if (cancel) cancel.closest(".reply-slot").replaceChildren();
   });
 
+  // Fotos e vídeos: pelo botão "Foto/vídeo", colando ou arrastando para a caixa de texto.
+  // Cada arquivo entra no texto como "[Enviando…]" e é trocado pelo Markdown quando o
+  // upload termina (ou removido, se der erro).
+  let uploadSeq = 0;
+  const upload = async (editor, file) => {
+    const input = inputOf(editor);
+    if (editor.classList.contains("previewing")) showTab(editor, "write");
+    const placeholder = `![Enviando ${file.name || "arquivo"}… #${++uploadSeq}]()`;
+    const at = input.selectionEnd;
+    const before = at > 0 && input.value[at - 1] !== "\n" ? "\n" : "";
+    input.setRangeText(`${before}${placeholder}\n`, at, at, "end");
+
+    editor.dataset.uploading = String(Number(editor.dataset.uploading || 0) + 1);
+    const settle = (text) => {
+      input.value = input.value.replace(placeholder, text);
+      editor.dataset.uploading = String(Number(editor.dataset.uploading) - 1);
+    };
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const res = await fetch("/midia", { method: "POST", body });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Não foi possível enviar o arquivo.");
+      settle(data.markdown);
+    } catch (err) {
+      settle("");
+      window.alert(`${file.name}: ${err.message}`);
+    }
+  };
+
+  const uploadAll = (editor, files) => {
+    for (const file of files) upload(editor, file);
+  };
+
+  document.addEventListener("change", (event) => {
+    if (!event.target.matches("[data-editor-upload]")) return;
+    uploadAll(editorOf(event.target), event.target.files);
+    event.target.value = "";
+  });
+
+  document.addEventListener("paste", (event) => {
+    if (!event.target.matches(".editor-input")) return;
+    const files = [...(event.clipboardData?.files ?? [])];
+    if (files.length === 0) return;
+    event.preventDefault();
+    uploadAll(editorOf(event.target), files);
+  });
+
+  const hasFiles = (event) => event.dataTransfer?.types.includes("Files");
+  document.addEventListener("dragover", (event) => {
+    const editor = event.target.closest?.(".editor");
+    if (!editor || !hasFiles(event)) return;
+    event.preventDefault();
+    editor.classList.add("dragover");
+  });
+  document.addEventListener("dragleave", (event) => {
+    event.target.closest?.(".editor")?.classList.remove("dragover");
+  });
+  document.addEventListener("drop", (event) => {
+    const editor = event.target.closest?.(".editor");
+    if (!editor || !hasFiles(event)) return;
+    event.preventDefault();
+    editor.classList.remove("dragover");
+    uploadAll(editor, event.dataTransfer.files);
+  });
+
   document.addEventListener("keydown", (event) => {
     if (!(event.ctrlKey || event.metaKey) || !event.target.matches(".editor-input")) return;
     const editor = editorOf(event.target);
@@ -171,6 +237,14 @@
     } catch {
       button.previousElementSibling?.select?.();
     }
+  });
+
+  // Não publica com foto ou vídeo ainda subindo: o texto ainda tem o "[Enviando…]".
+  document.addEventListener("submit", (event) => {
+    const busy = [...event.target.querySelectorAll(".editor")].some((e) => Number(e.dataset.uploading) > 0);
+    if (!busy) return;
+    event.preventDefault();
+    window.alert("Espere o envio dos arquivos terminar.");
   });
 
   // Confirmação antes de apagar.

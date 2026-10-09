@@ -314,6 +314,7 @@ a.button:hover {
 .editor-tabs,
 .editor-tools {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
 }
 
@@ -344,6 +345,14 @@ a.button:hover {
 
 .tool-italic {
   font-style: italic;
+}
+
+label.editor-tool {
+  margin: 0;
+}
+
+.editor.dragover {
+  outline: 2px dashed var(--masthead-from);
 }
 
 .editor.previewing .editor-tools {
@@ -406,8 +415,15 @@ a.button:hover {
   overflow-wrap: anywhere;
 }
 
-.post-body img {
+.post-body img,
+.post-body video {
   max-width: 100%;
+}
+
+.post-body video {
+  display: block;
+  max-height: 70vh;
+  background: #000;
 }
 
 .post-body blockquote {
@@ -691,6 +707,28 @@ a.button:hover {
   background: linear-gradient(to bottom, var(--masthead-from), var(--masthead-to));
   color: #fff;
   font: bold 28px Georgia, "Times New Roman", serif;
+}
+
+img.avatar {
+  object-fit: cover;
+  background: var(--row-alt);
+}
+
+.avatar-small {
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  margin-right: 4px;
+  border-radius: 3px;
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+.avatar-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 4px;
 }
 
 .profile-name {

@@ -5,10 +5,12 @@ Os nomes dos menus do painel da Cloudflare mudam de vez em quando; se algo não 
 
 ## 1. Banco e Worker
 
-O banco D1 já existe (o `database_id` está no `wrangler.jsonc`).
+O banco D1 já existe (o `database_id` está no `wrangler.jsonc`). Fotos e vídeos ficam num bucket R2, que
+precisa existir antes do primeiro deploy (o R2 tem que estar ativado na conta: painel › **R2**):
 
 ```sh
 npx wrangler login                 # uma vez, abre o navegador
+npx wrangler r2 bucket create clube-media
 npm run db:migrate:remote          # cria as tabelas no D1 de produção
 npm run seed:admin -- --remote --email SEU@EMAIL --username seuapelido --name "Seu Nome"
 npm run deploy                     # mostra a URL: https://clube.<sua-conta>.workers.dev
@@ -93,6 +95,7 @@ Access próprios. Assim, testes e convites feitos no staging não mexem na produ
 
    ```sh
    npx wrangler d1 create clube-staging
+   npx wrangler r2 bucket create clube-media-staging
    ```
 
 2. Crie as tabelas, o primeiro admin e suba o Worker:
@@ -132,3 +135,13 @@ Com isso, cada push em uma branch de PR gera uma preview do `clube-staging` (apa
 GitHub), protegida pelo Access. As migrations não rodam sozinhas: quando um PR trouxer
 migration nova, rode `npm run db:migrate:staging` antes de testar a preview, e `npm run db:migrate:remote`
 antes do merge em `main`.
+
+## Fotos e vídeos (R2)
+
+Os arquivos ficam no R2 (`clube-media` na produção, `clube-media-staging` no staging e nas previews) e são
+servidos pelo próprio Worker em `/m/...`. O bucket fica privado, sem domínio público nem `r2.dev`: só quem
+passa pelo Access vê as mídias.
+
+Limites: fotos (JPEG, PNG, GIF, WebP) até 10 MB, vídeos (MP4, WebM) até 25 MB e foto de perfil até 2 MB.
+O tipo é conferido pelo conteúdo do arquivo, não pelo nome. Ao trocar ou tirar a foto de perfil, a antiga é
+apagada; mídias de posts apagados continuam no bucket.
