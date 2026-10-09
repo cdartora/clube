@@ -10,7 +10,7 @@ O escopo do MVP e as decisões de produto estão em [`docs/mvp.md`](docs/mvp.md)
 
 - **Entrada só por convite.** O Cloudflare Access cuida do login (código por email). Cada membro tem 1 convite; o app libera o email do convidado no Access e mostra o link para mandar pelo WhatsApp.
 - **Boas-vindas:** o convidado escolhe apelido e nome de exibição e aceita as [regras da casa](src/content/rules.tsx).
-- **Tópicos e respostas em árvore**, com editor de barra de botões (negrito, itálico, link, citação, lista) e prévia. O texto é guardado em Markdown, sem HTML bruto.
+- **Tópicos e respostas em árvore**, com editor visual (o texto aparece formatado enquanto se digita: negrito, itálico, link, citação, listas, fotos e vídeos). O texto é guardado em Markdown, sem HTML bruto.
 - **Votos ▲ ▼** anônimos, que ordenam as respostas, e **aplausos 👏** públicos, até 10 por pessoa em cada post.
 - **Notificações** de respostas e aplausos, e marcas de **"novo"** / **"novas respostas"** no índice.
 - **Perfis** (`/u/apelido`) e um **painel de admin** para ajustar cotas e desativar ou reativar membros.
@@ -74,7 +74,8 @@ src/
   lib/             regras de negócio (Markdown, árvore de respostas, votos, convites, API do Access, notificações)
   db/schema.ts     tabelas (Drizzle)
   views/           páginas em JSX
-public/            CSS, app.js (editor e aplausos), favicon e htmx
+client/            editor do navegador (TipTap), empacotado em public/editor.js por `npm run build:editor`
+public/            CSS, app.js (aplausos e afins), favicon e htmx
 drizzle/migrations migrations SQL geradas pelo drizzle-kit
 scripts/           scripts de linha de comando (seed do admin)
 test/              testes

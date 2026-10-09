@@ -1,7 +1,5 @@
 import { BODY_MAX } from "../lib/posts";
 
-const MEDIA_ACCEPT = "image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime";
-
 type EditorProps = {
   value?: string;
   placeholder?: string;
@@ -9,42 +7,41 @@ type EditorProps = {
   autofocus?: boolean;
 };
 
+const MEDIA_ACCEPT = "image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime";
+
 const TOOLS: { action: string; label: string; title: string }[] = [
   { action: "bold", label: "N", title: "Negrito (Ctrl+B)" },
   { action: "italic", label: "I", title: "Itálico (Ctrl+I)" },
-  { action: "link", label: "Link", title: "Inserir link" },
+  { action: "link", label: "Link", title: "Inserir link (Ctrl+K)" },
   { action: "quote", label: "Citação", title: "Citar" },
-  { action: "list", label: "Lista", title: "Lista com marcadores" },
+  { action: "bulletList", label: "Lista", title: "Lista com marcadores" },
+  { action: "orderedList", label: "1. Lista", title: "Lista numerada" },
 ];
 
 /**
- * Caixa de texto com barra de botões e prévia. O comportamento fica em
- * public/app.js, por delegação de eventos, então funciona também em
- * formulários que o htmx injeta depois. Fotos e vídeos vão para /midia e
- * entram no texto como Markdown de imagem.
+ * Editor de texto. O servidor manda uma <textarea> comum com Markdown (funciona sem
+ * JavaScript); public/editor.js (gerado de client/editor.js) troca a caixa por um
+ * editor visual, que mostra o texto já formatado enquanto se digita e devolve
+ * Markdown para a mesma <textarea> antes do envio. Fotos e vídeos vão para /midia.
  */
 export const Editor = ({ value, placeholder, rows = 10, autofocus }: EditorProps) => (
-  <div class="editor">
-    <div class="editor-bar">
-      <div class="editor-tabs" role="tablist">
-        <button type="button" class="editor-tab active" data-editor-tab="write">
-          Escrever
+  <div class="editor" style={`--editor-rows: ${rows}`}>
+    <div class="editor-bar" role="toolbar" aria-label="Formatação">
+      {TOOLS.map((t) => (
+        <button
+          type="button"
+          class={`editor-tool tool-${t.action}`}
+          data-editor-action={t.action}
+          title={t.title}
+          aria-label={t.title}
+        >
+          {t.label}
         </button>
-        <button type="button" class="editor-tab" data-editor-tab="preview">
-          Visualizar
-        </button>
-      </div>
-      <div class="editor-tools">
-        {TOOLS.map((t) => (
-          <button type="button" class={`editor-tool tool-${t.action}`} data-editor-action={t.action} title={t.title}>
-            {t.label}
-          </button>
-        ))}
-        <label class="editor-tool tool-media" title="Enviar foto ou vídeo (também dá para colar ou arrastar)">
-          Foto/vídeo
-          <input type="file" accept={MEDIA_ACCEPT} multiple hidden data-editor-upload />
-        </label>
-      </div>
+      ))}
+      <label class="editor-tool tool-media" title="Enviar foto ou vídeo (também dá para colar ou arrastar)">
+        Foto/vídeo
+        <input type="file" accept={MEDIA_ACCEPT} multiple hidden data-editor-upload />
+      </label>
     </div>
     <textarea
       name="body"
@@ -57,6 +54,5 @@ export const Editor = ({ value, placeholder, rows = 10, autofocus }: EditorProps
     >
       {value}
     </textarea>
-    <div class="editor-preview post-body" hidden></div>
   </div>
 );

@@ -13,7 +13,8 @@
     "db:migrate:remote": "wrangler d1 migrations apply clube --remote",
     "db:migrate:staging": "wrangler d1 migrations apply clube-staging --remote --env staging",
     "seed:admin": "node scripts/seed-admin.mjs",
-    "cf-typegen": "wrangler types --strict-vars=false"
+    "cf-typegen": "wrangler types --strict-vars=false",
+    "build:editor": "esbuild client/editor.js --bundle --minify --format=iife --target=es2020 --outfile=public/editor.js"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.3",
@@ -23,8 +24,15 @@
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "^1.3.7",
+    "@tiptap/core": "^3.31.4",
+    "@tiptap/extension-image": "^3.31.4",
+    "@tiptap/extensions": "^3.31.4",
+    "@tiptap/markdown": "^3.31.4",
+    "@tiptap/pm": "^3.31.4",
+    "@tiptap/starter-kit": "^3.31.4",
     "@types/markdown-it": "^14.2.0",
     "drizzle-kit": "^0.31.11",
+    "esbuild": "^0.28.2",
     "typescript": "^7.0.2",
     "vitest": "^4.1.0",
     "wrangler": "^4.15.2"

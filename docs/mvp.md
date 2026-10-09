@@ -87,9 +87,9 @@ Localmente não existe Access. Com a variável `DEV_USER_EMAIL` definida, e some
 - Mostra autor, número de respostas e quem respondeu por último, e quando.
 
 **Editor amigável**
-- Uma caixa de texto com barra de botões: **negrito**, *itálico*, link, citação e lista. Atalhos: Ctrl+B, Ctrl+I e Ctrl+Enter para publicar.
-- Abas **Escrever / Visualizar**. A prévia é renderizada pelo servidor, então o que se vê é exatamente o que vai ser publicado.
-- O conteúdo é guardado em Markdown, mas a pessoa não precisa saber disso: os botões escrevem a sintaxe.
+- Editor visual (TipTap) com barra de botões: **negrito**, *itálico*, link, citação, listas e foto/vídeo. Atalhos: Ctrl+B, Ctrl+I, Ctrl+K (link) e Ctrl+Enter para publicar; digitar Markdown (`- `, `> `, `**x**`) também formata na hora.
+- Sem abas de prévia: o texto já aparece como vai ficar no post.
+- O conteúdo é guardado em Markdown, mas a pessoa não precisa saber disso. Sem JavaScript, o editor volta a ser uma caixa de texto com Markdown.
 - A renderização usa `markdown-it` com HTML bruto desabilitado, para não abrir brecha de XSS.
 
 **Votos e aplausos**

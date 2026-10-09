@@ -7,6 +7,10 @@
   "assets": {
     "directory": "public"
   },
+  // Gera public/editor.js (o editor do navegador, em client/) antes de dev, deploy e preview.
+  "build": {
+    "command": "npm run build:editor"
+  },
   "preview_urls": false,
   "d1_databases": [
     {
