@@ -10,6 +10,10 @@ import { InvitesPage } from "../views/invites";
 
 const me = (c: Context<AppEnv>) => c.get("user") as User;
 
+/** Para admins, junta o motivo técnico à mensagem: sem ele, só dá para descobrir a causa nos logs do Worker. */
+const withDetail = (c: Context<AppEnv>, message: string, err: unknown) =>
+  me(c).role === "admin" ? `${message} Detalhe: ${err instanceof Error ? err.message : String(err)}` : message;
+
 const renderPage = async (
   c: Context<AppEnv>,
   extra: { justInvited?: string; values?: { email: string }; error?: string } = {},
@@ -55,7 +59,10 @@ inviteRoutes.post("/convites", async (c) => {
     console.error("Falha ao liberar email no Access", err);
     return renderPage(
       c,
-      { values, error: "Não consegui liberar o acesso dessa pessoa agora. Tente de novo em instantes." },
+      {
+        values,
+        error: withDetail(c, "Não consegui liberar o acesso dessa pessoa agora. Tente de novo em instantes.", err),
+      },
       502,
     );
   }
@@ -84,7 +91,11 @@ inviteRoutes.post("/convites/:id{[0-9]+}/cancelar", async (c) => {
     await accessGroupClientFor(c.env).removeEmail(invite.email);
   } catch (err) {
     console.error("Falha ao remover email do Access", err);
-    return renderPage(c, { error: "Não consegui cancelar o acesso agora. Tente de novo em instantes." }, 502);
+    return renderPage(
+      c,
+      { error: withDetail(c, "Não consegui cancelar o acesso agora. Tente de novo em instantes.", err) },
+      502,
+    );
   }
   await db.update(invites).set({ status: "canceled" }).where(eq(invites.id, invite.id));
   return c.redirect("/convites", 303);
