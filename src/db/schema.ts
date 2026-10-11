@@ -175,6 +175,21 @@ export const notifications = sqliteTable(
   (t) => [index("notifications_user_idx").on(t.userId, t.readAt)],
 );
 
+// Cada arquivo guardado no R2. Serve para controlar o espaço usado (sem listar o bucket a cada
+// upload) e para a limpeza diária achar arquivos que nenhum post usa mais.
+export const media = sqliteTable(
+  "media",
+  {
+    key: text("key").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    size: integer("size").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("media_user_created_idx").on(t.userId, t.createdAt)],
+);
+
 export type User = typeof users.$inferSelect;
 export type Topic = typeof topics.$inferSelect;
 export type Reply = typeof replies.$inferSelect;

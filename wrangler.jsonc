@@ -24,11 +24,16 @@
     // Fotos e vídeos dos posts e fotos de perfil. Servidos pelo próprio Worker (/m/...), atrás do Access.
     { "binding": "MEDIA", "bucket_name": "clube-media" }
   ],
+  // Limpeza diária do R2 (src/lib/media-cleanup.ts), às 4h17 UTC. Vale também para o staging.
+  "triggers": { "crons": ["17 4 * * *"] },
   "vars": {
     "ACCESS_TEAM_DOMAIN": "lingering-mouse-80e0.cloudflareaccess.com",
     "ACCESS_AUD": "ed2e55afc429f69998cbb83281c95cda28afcc5fb1a4162c99a2782b8f46c3b8",
     "CF_ACCOUNT_ID": "dcd03d86f33761b593db669aba821f8a",
-    "ACCESS_GROUP_ID": "7a82b9ce-e3ad-4062-8dd1-ffe48905a6a4"
+    "ACCESS_GROUP_ID": "7a82b9ce-e3ad-4062-8dd1-ffe48905a6a4",
+    // Espaço máximo do bucket de mídia. O R2 gratuito dá 10 GB para a conta toda:
+    // 8 GB aqui + 1 GB do staging deixam folga.
+    "MEDIA_BUDGET_MB": "8192"
   },
   "observability": {
     "enabled": true
@@ -52,7 +57,8 @@
         "ACCESS_AUD": "d5e3949c5461e529598253ec75e758fcafbe95095e1ababa2c9f03a19c95e084",
         "CF_ACCOUNT_ID": "dcd03d86f33761b593db669aba821f8a",
         // Grupo separado (ex.: clube-staging): convites feitos no staging não liberam ninguém na produção.
-        "ACCESS_GROUP_ID": "cdb8acf4-564f-4cb1-923a-60a765a20b26"
+        "ACCESS_GROUP_ID": "cdb8acf4-564f-4cb1-923a-60a765a20b26",
+        "MEDIA_BUDGET_MB": "1024"
       },
       // Previews (`wrangler preview --env staging`, uma por branch). Não herdam nada de cima:
       // repetem o banco e as variáveis do staging. Mantenha os valores iguais aos de `env.staging`.
@@ -70,7 +76,8 @@
           "ACCESS_TEAM_DOMAIN": "lingering-mouse-80e0.cloudflareaccess.com",
           "ACCESS_AUD": "d5e3949c5461e529598253ec75e758fcafbe95095e1ababa2c9f03a19c95e084",
           "CF_ACCOUNT_ID": "dcd03d86f33761b593db669aba821f8a",
-          "ACCESS_GROUP_ID": "cdb8acf4-564f-4cb1-923a-60a765a20b26"
+          "ACCESS_GROUP_ID": "cdb8acf4-564f-4cb1-923a-60a765a20b26",
+          "MEDIA_BUDGET_MB": "1024"
         }
       }
     }

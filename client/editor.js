@@ -77,8 +77,10 @@ const uploadFile = async (editor, shell, file, pos) => {
   else editor.chain().insertContentAt(pos, content).run();
 
   try {
+    // Fotos sobem reduzidas (window.Clube vem do app.js, que carrega este arquivo).
+    const ready = window.Clube ? await window.Clube.shrinkImage(file) : file;
     const body = new FormData();
-    body.append("file", file);
+    body.append("file", ready);
     const res = await fetch("/midia", { method: "POST", body });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || "Não foi possível enviar o arquivo.");

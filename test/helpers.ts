@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import app from "../src/index";
+import { app } from "../src/index";
 
 /** Faz uma requisição ao app como se `email` estivesse logado (modo local, sem Access). */
 export const requestAs = (

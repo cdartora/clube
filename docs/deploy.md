@@ -142,6 +142,25 @@ Os arquivos ficam no R2 (`clube-media` na produção, `clube-media-staging` no s
 servidos pelo próprio Worker em `/m/...`. O bucket fica privado, sem domínio público nem `r2.dev`: só quem
 passa pelo Access vê as mídias.
 
-Limites: fotos (JPEG, PNG, GIF, WebP) até 10 MB, vídeos (MP4, WebM) até 25 MB e foto de perfil até 2 MB.
-O tipo é conferido pelo conteúdo do arquivo, não pelo nome. Ao trocar ou tirar a foto de perfil, a antiga é
-apagada; mídias de posts apagados continuam no bucket.
+Limites: fotos (JPEG, PNG, GIF, WebP) até 5 MB, vídeos (MP4, WebM) até 25 MB e foto de perfil até 2 MB.
+O tipo é conferido pelo conteúdo do arquivo, não pelo nome.
+
+### Mantendo o R2 no plano gratuito
+
+O R2 gratuito dá **10 GB guardados, 1 milhão de escritas e 10 milhões de leituras por mês**, somando todos os
+buckets da conta. O Clube se segura abaixo disso assim:
+
+- **Fotos reduzidas no navegador** antes de subir: no máximo 1600 px no lado maior (512 px na foto de
+  perfil), em WebP. Uma foto de celular de 3 a 5 MB vira algumas centenas de KB, e o EXIF (com a
+  localização) não vai junto. GIFs e vídeos sobem como estão.
+- **Espaço reservado por bucket** (`MEDIA_BUDGET_MB` no `wrangler.jsonc`): 8 GB na produção e 1 GB no
+  staging. Cada arquivo fica registrado na tabela `media`; quando um envio passaria do limite, ele é recusado
+  com um aviso. Também há cota por pessoa (1 GB) e no máximo 50 envios por pessoa por dia.
+- **Limpeza diária** (Cron Trigger às 4h17 UTC, `src/lib/media-cleanup.ts`): apaga arquivos que nenhum post
+  visível nem perfil usa há mais de 24 horas, como fotos de posts apagados ou que a pessoa desistiu de
+  publicar. Apagar não conta como escrita. A limpeza também acerta a tabela `media` com o que está no bucket.
+- **Cache no navegador**: cada endereço de mídia é imutável, então o navegador guarda o arquivo por um ano e
+  não pede de novo ao R2.
+
+O resultado da limpeza aparece nos logs do Worker ("Limpeza de mídia"). Para rodar na hora, sem esperar o
+cron: `npx wrangler dev --test-scheduled` e abra `http://localhost:8787/__scheduled`.
