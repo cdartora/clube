@@ -31,3 +31,48 @@ describe("índice", () => {
     expect(await res.text()).toContain("Página não encontrada");
   });
 });
+
+describe("paginação e marcar tudo como lido", () => {
+  const ids = async () =>
+    [...(await (await get("/")).text()).matchAll(/href="\/t\/(\d+)" class="topic-title"/g)].map((m) => m[1]);
+
+  it("mostra 30 tópicos por página, com links entre as páginas", async () => {
+    await env.DB.prepare("DELETE FROM topics").run();
+    await env.DB.batch(
+      Array.from({ length: 31 }, (_, i) =>
+        env.DB.prepare(
+          "INSERT INTO topics (id, author_id, title, body_md, last_activity_at) VALUES (?, 1, ?, 'x', ?)",
+        ).bind(i + 1, `Tópico ${i + 1}`, 1_700_000_000 + i),
+      ),
+    );
+
+    const first = await (await get("/")).text();
+    expect(await ids()).toHaveLength(30);
+    expect(first).toContain('href="/?pagina=2"');
+    expect(first).not.toContain("mais recentes");
+
+    const second = await (await get("/?pagina=2")).text();
+    expect(second).toContain('href="/t/1" class="topic-title"');
+    expect(second).toContain('<a href="/">← mais recentes</a>');
+    expect(second).not.toContain("mais antigos");
+
+    const beyond = await get("/?pagina=9");
+    expect(beyond.status).toBe(302);
+    expect(beyond.headers.get("Location")).toBe("/");
+  });
+
+  it("marca todos os tópicos como lidos, inclusive os das outras páginas", async () => {
+    expect(await (await get("/")).text()).toContain("marcar tudo como lido");
+
+    const res = await requestAs("ana@x.com", "/lidos", { method: "POST", headers: { Origin: "http://localhost" } });
+    expect(res.status).toBe(303);
+
+    for (const path of ["/", "/?pagina=2"]) {
+      const html = await (await get(path)).text();
+      expect(html).not.toContain('class="badge-new"');
+      expect(html).not.toContain("marcar tudo como lido");
+    }
+    const reads = await env.DB.prepare("SELECT count(*) AS n FROM topic_reads WHERE user_id = 1").first<{ n: number }>();
+    expect(reads?.n).toBe(31);
+  });
+});

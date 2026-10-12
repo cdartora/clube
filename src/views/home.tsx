@@ -13,12 +13,31 @@ export type TopicRow = {
   readState: "new" | "updated" | "read";
 };
 
-export const HomePage = ({ topics, user }: { topics: TopicRow[]; user: User }) => (
+const pageHref = (page: number) => (page === 1 ? "/" : `/?pagina=${page}`);
+
+export const HomePage = ({
+  topics,
+  user,
+  page = 1,
+  hasNext = false,
+}: {
+  topics: TopicRow[];
+  user: User;
+  page?: number;
+  hasNext?: boolean;
+}) => (
   <Layout user={user}>
     <div class="toolbar">
       <a href="/novo" class="button">
         Novo tópico
       </a>
+      {topics.some((t) => t.readState !== "read") && (
+        <form method="post" action="/lidos" class="inline-form">
+          <button type="submit" class="link-button">
+            marcar tudo como lido
+          </button>
+        </form>
+      )}
     </div>
     <table class="forum-table">
       <thead>
@@ -59,5 +78,12 @@ export const HomePage = ({ topics, user }: { topics: TopicRow[]; user: User }) =
         )}
       </tbody>
     </table>
+    {(page > 1 || hasNext) && (
+      <nav class="pagination" aria-label="Páginas do índice">
+        {page > 1 ? <a href={pageHref(page - 1)}>← mais recentes</a> : <span />}
+        <span class="muted">página {page}</span>
+        {hasNext ? <a href={pageHref(page + 1)}>mais antigos →</a> : <span />}
+      </nav>
+    )}
   </Layout>
 );

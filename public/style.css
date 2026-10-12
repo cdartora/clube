@@ -282,8 +282,23 @@ a.button:hover {
 
 .toolbar {
   display: flex;
-  justify-content: flex-end;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 12px;
   margin-bottom: 10px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+.mention {
+  font-weight: bold;
+  text-decoration: none;
 }
 
 .breadcrumb {
