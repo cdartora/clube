@@ -182,7 +182,7 @@ export const ProfileEditPage = ({
         <div class="avatar-field">
           <Avatar name={user.displayName} avatarKey={user.avatarKey} />
           <div>
-            <input id="avatar" name="avatar" type="file" accept="image/jpeg,image/png,image/gif,image/webp" />
+            <input id="avatar" name="avatar" type="file" accept="image/jpeg,image/png,image/gif,image/webp" data-shrink="512" />
             <div class="hint">JPEG, PNG, GIF ou WebP, até {AVATAR_MAX / 1024 / 1024} MB. De preferência quadrada.</div>
             {user.avatarKey && (
               <label class="checkbox">

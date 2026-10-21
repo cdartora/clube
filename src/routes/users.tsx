@@ -3,7 +3,7 @@ import { type Context, Hono } from "hono";
 import type { AppEnv, Member } from "../auth/middleware";
 import { getDb } from "../db";
 import { users } from "../db/schema";
-import { storeMedia } from "../lib/media";
+import { deleteMedia, storeMedia } from "../lib/media";
 import { BIO_MAX, loadProfile, loadProfileActivity } from "../lib/users";
 import { DISPLAY_NAME_MAX } from "../lib/username";
 import { ErrorPage } from "../views/errors";
@@ -47,7 +47,7 @@ userRoutes.post("/perfil", async (c) => {
   const oldAvatar = me(c).avatarKey;
   let avatarKey = oldAvatar;
   if (form.avatar instanceof File && form.avatar.size > 0) {
-    const stored = await storeMedia(c.env.MEDIA, form.avatar, { userId: me(c).id, folder: "avatars", imagesOnly: true });
+    const stored = await storeMedia(c.env, form.avatar, { userId: me(c).id, folder: "avatars", imagesOnly: true });
     if (!stored.ok) {
       return c.html(<ProfileEditPage user={me(c)} values={values} errors={{ avatar: stored.error }} />, 400);
     }
@@ -57,6 +57,6 @@ userRoutes.post("/perfil", async (c) => {
   }
 
   await getDb(c.env.DB).update(users).set({ ...values, avatarKey }).where(eq(users.id, me(c).id));
-  if (oldAvatar && oldAvatar !== avatarKey) await c.env.MEDIA.delete(oldAvatar);
+  if (oldAvatar && oldAvatar !== avatarKey) await deleteMedia(c.env, oldAvatar);
   return c.redirect(`/u/${me(c).username}`, 303);
 });

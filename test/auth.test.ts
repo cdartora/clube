@@ -2,7 +2,7 @@ import { env } from "cloudflare:test";
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from "jose";
 import { beforeAll, describe, expect, it } from "vitest";
 import { verifyAccessJwt } from "../src/auth/access";
-import app from "../src/index";
+import { app } from "../src/index";
 import { insertUser, requestAs } from "./helpers";
 
 beforeAll(async () => {

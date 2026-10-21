@@ -1,6 +1,6 @@
 import { env } from "cloudflare:test";
-import { beforeAll, describe, expect, it } from "vitest";
-import { sniffMediaType } from "../src/lib/media";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { DAILY_UPLOADS, sniffMediaType, USER_BUDGET } from "../src/lib/media";
 import { insertUser, requestAs } from "./helpers";
 
 const ANA = "ana@x.com";
@@ -11,13 +11,22 @@ const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0x10, 0x4a, 0x46, 0x49, 
 const MP4 = new Uint8Array([0, 0, 0, 0x18, ...new TextEncoder().encode("ftypisom"), 0, 0, 2, 0, 9, 9, 9, 9]);
 const SVG = new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
 
-const multipart = (email: string, path: string, fields: Record<string, string | File>) => {
+const multipart = (
+  email: string,
+  path: string,
+  fields: Record<string, string | File>,
+  extraEnv: Partial<Env> = {},
+) => {
   const body = new FormData();
   for (const [k, v] of Object.entries(fields)) body.append(k, v);
-  return requestAs(email, path, { method: "POST", headers: { Origin: "http://localhost" }, body });
+  return requestAs(email, path, { method: "POST", headers: { Origin: "http://localhost" }, body }, extraEnv);
 };
 
-const upload = (file: File, email = ANA) => multipart(email, "/midia", { file });
+const upload = (file: File, email = ANA, extraEnv: Partial<Env> = {}) =>
+  multipart(email, "/midia", { file }, extraEnv);
+
+const mediaRow = (key: string) =>
+  env.DB.prepare("SELECT user_id, size FROM media WHERE key = ?").bind(key).first<{ user_id: number; size: number }>();
 
 beforeAll(async () => {
   await insertUser(1, ANA, "ana", "Ana");
@@ -45,6 +54,7 @@ describe("upload de mídia", () => {
     const object = await env.MEDIA.get(data.url.slice(3));
     expect(object?.httpMetadata?.contentType).toBe("image/png");
     expect(object?.customMetadata?.userId).toBe("1");
+    expect(await mediaRow(data.url.slice(3))).toEqual({ user_id: 1, size: PNG.length });
   });
 
   it("recusa o que não é foto nem vídeo, mesmo com nome e tipo de imagem", async () => {
@@ -70,6 +80,47 @@ describe("upload de mídia", () => {
     body.append("file", new File([PNG], "x.png"));
     const res = await requestAs(ANA, "/midia", { method: "POST", headers: { Origin: "https://mal.example" }, body });
     expect(res.status).toBe(403);
+  });
+});
+
+describe("limites de espaço", () => {
+  // Caio só aparece aqui; os registros falsos são apagados depois de cada teste.
+  const CAIO = "caio@x.com";
+  beforeAll(() => insertUser(3, CAIO, "caio", "Caio"));
+  afterEach(() => env.DB.prepare("DELETE FROM media WHERE key LIKE 'fake/%'").run());
+
+  const fakeRows = (n: number, size: number, createdAt = Math.floor(Date.now() / 1000)) =>
+    env.DB.batch(
+      Array.from({ length: n }, (_, i) =>
+        env.DB.prepare("INSERT INTO media (key, user_id, size, created_at) VALUES (?, 3, ?, ?)").bind(
+          `fake/${i}`,
+          size,
+          createdAt,
+        ),
+      ),
+    );
+
+  it("recusa quando o bucket chegaria ao limite do Clube", async () => {
+    const res = await upload(new File([PNG], "a.png"), CAIO, { MEDIA_BUDGET_MB: "0.00001" });
+    expect(res.status).toBe(507);
+    expect((await res.json<{ error: string }>()).error).toContain("espaço de fotos e vídeos do Clube acabou");
+  });
+
+  it("recusa quando a pessoa já usou a cota dela", async () => {
+    await fakeRows(1, USER_BUDGET);
+    const res = await upload(new File([PNG], "a.png"), CAIO);
+    expect(res.status).toBe(413);
+    // A cota é de cada um: Ana continua enviando.
+    expect((await upload(new File([PNG], "a.png"), ANA)).status).toBe(201);
+  });
+
+  it("limita os envios por dia, mas não conta os de antes", async () => {
+    await fakeRows(DAILY_UPLOADS, 1, Math.floor(Date.now() / 1000) - 2 * 24 * 60 * 60);
+    expect((await upload(new File([PNG], "a.png"), CAIO)).status).toBe(201);
+
+    await env.DB.prepare("UPDATE media SET created_at = unixepoch() WHERE key LIKE 'fake/%'").run();
+    const res = await upload(new File([PNG], "a.png"), CAIO);
+    expect(res.status).toBe(429);
   });
 });
 
@@ -132,6 +183,7 @@ describe("foto de perfil", () => {
     const second = await avatarKey();
     expect(second).toMatch(/\.png$/);
     expect(await env.MEDIA.head(first!)).toBeNull();
+    expect(await mediaRow(first!)).toBeNull();
 
     // Salvar sem escolher arquivo mantém a foto.
     res = await multipart(BETO, "/perfil", { displayName: "Beto B.", bio: "", avatar: new File([], "") });

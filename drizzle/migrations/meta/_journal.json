@@ -22,6 +22,13 @@
       "when": 1791570053573,
       "tag": "0002_user_avatar",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1791729832171,
+      "tag": "0003_media",
+      "breakpoints": true
     }
   ]
 }

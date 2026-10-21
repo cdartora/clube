@@ -28,6 +28,7 @@ Navegador ──► Cloudflare Access ──► Worker (Hono) ──► D1
 - **Cloudflare Access** é o portão. Quem não está liberado não chega no Worker.
 - **Worker (Hono)** valida o JWT do Access (`Cf-Access-Jwt-Assertion`: assinatura, `aud`, expiração), descobre o email e carrega o usuário do D1.
 - **D1** guarda tudo: usuários, convites, tópicos, respostas, votos, aplausos e notificações.
+- **R2** guarda fotos e vídeos (`media` no D1 registra cada arquivo, para controlar o espaço).
 - **Páginas**: JSX do próprio Hono (`hono/jsx`) renderizado no servidor. O htmx entra onde evita recarregar a página inteira (votar, aplaudir, prévia do editor, abrir o formulário de resposta, marcar notificação como lida).
 
 ### Limites do free tier
@@ -37,7 +38,8 @@ Navegador ──► Cloudflare Access ──► Worker (Hono) ──► D1
 | Workers | 100k requests/dia | algumas centenas |
 | D1 | 5M leituras e 100k escritas por dia, 5 GB | muito abaixo |
 | Access | 50 usuários | começa com 4 |
-| Cron Triggers | grátis | expirar convites (pós-MVP) |
+| R2 | 10 GB, 1M escritas e 10M leituras por mês | travado em 8 GB (+1 GB do staging); veja `deploy.md` |
+| Cron Triggers | grátis | limpeza diária do R2; expirar convites (pós-MVP) |
 
 ## Auth e onboarding
 
@@ -128,7 +130,6 @@ São duas coisas com papéis diferentes, valendo para tópicos e respostas:
 - "Marcar tudo como lido" no índice
 - Paginação do índice (hoje mostra os 50 tópicos mais recentes) e de tópicos longos
 - Aba "Em alta", ordenada por pontuação
-- Upload de imagens e foto de perfil (R2)
 - Busca (FTS5 do D1)
 - Menções `@apelido`
 - Expiração automática de convites (Cron Trigger)

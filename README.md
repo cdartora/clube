@@ -53,7 +53,7 @@ Mudou o `database_id` no `wrangler.jsonc`? O wrangler cria um banco local novo e
 | Comando | O que faz |
 |---|---|
 | `npm run dev` | Sobe o Worker localmente |
-| `npm test` | Roda os testes (dentro do runtime do Workers, com a API do Access simulada) |
+| `npm test` | Roda os testes (dentro do runtime do Workers, com a API do Access simulada). O CI do GitHub roda typecheck e testes em cada PR |
 | `npm run typecheck` | Checa os tipos |
 | `npm run db:generate` | Gera uma migration nova a partir de `src/db/schema.ts` |
 | `npm run db:migrate:local` | Aplica as migrations no banco local |

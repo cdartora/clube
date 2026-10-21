@@ -12,7 +12,7 @@ mediaRoutes.post("/midia", async (c) => {
   const file = form?.file;
   if (!(file instanceof File)) return c.json({ error: "Nenhum arquivo enviado." }, 400);
 
-  const stored = await storeMedia(c.env.MEDIA, file, { userId: me(c).id, folder: "posts" });
+  const stored = await storeMedia(c.env, file, { userId: me(c).id, folder: "posts" });
   if (!stored.ok) return c.json({ error: stored.error }, stored.status);
 
   return c.json(

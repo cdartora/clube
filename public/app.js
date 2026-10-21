@@ -15,6 +15,76 @@
   loadEditor(document);
   document.addEventListener("htmx:load", (event) => loadEditor(event.target));
 
+  // Fotos são reduzidas no navegador antes de subir: uma foto de celular (3 a 5 MB) vira algumas
+  // centenas de KB, o que segura o R2 no plano gratuito. De quebra, sai o EXIF (com a localização).
+  // GIF (pode ser animado), vídeo e o que o navegador não souber abrir sobem como estão.
+  const SHRINKABLE = /^image\/(jpeg|png|webp)$/;
+  const SMALL_ENOUGH = 300 * 1024;
+
+  const encode = (canvas, type, quality) => new Promise((resolve) => canvas.toBlob(resolve, type, quality));
+
+  const shrinkImage = async (file, maxSide = 1600) => {
+    if (!SHRINKABLE.test(file.type)) return file;
+    let bitmap;
+    try {
+      bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+    } catch {
+      return file;
+    }
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+    if (scale === 1 && file.size <= SMALL_ENOUGH) {
+      bitmap.close();
+      return file;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+    // WebP é menor; o Safari antigo não gera WebP e devolve PNG, então ali vai JPEG (fundo branco
+    // no lugar da transparência).
+    let blob = await encode(canvas, "image/webp", 0.82);
+    if (!blob || blob.type !== "image/webp") {
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      blob = await encode(canvas, "image/jpeg", 0.85);
+    }
+    bitmap.close();
+    if (!blob || blob.size >= file.size) return file;
+    const ext = blob.type === "image/webp" ? "webp" : "jpg";
+    return new File([blob], file.name.replace(/\.[^.]*$/, "") + "." + ext, { type: blob.type });
+  };
+
+  // O editor (public/editor.js) usa a mesma função.
+  window.Clube = { shrinkImage };
+
+  // Foto de perfil: reduz assim que é escolhida. O envio espera a redução terminar.
+  const shrinking = new WeakMap();
+  document.addEventListener("change", (event) => {
+    const input = event.target;
+    if (!input.matches("input[type=file][data-shrink]") || !input.files[0]) return;
+    const done = shrinkImage(input.files[0], Number(input.dataset.shrink)).then((file) => {
+      const list = new DataTransfer();
+      list.items.add(file);
+      input.files = list.files;
+    });
+    shrinking.set(input.form, done);
+    done.finally(() => shrinking.delete(input.form));
+  });
+  document.addEventListener(
+    "submit",
+    (event) => {
+      const done = shrinking.get(event.target);
+      if (!done) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      done.finally(() => event.target.requestSubmit());
+    },
+    true,
+  );
+
   // "Cancelar" num formulário de resposta aberto no meio da árvore.
   document.addEventListener("click", (event) => {
     const cancel = event.target.closest("[data-cancel-reply]");
