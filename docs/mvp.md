@@ -87,6 +87,7 @@ Localmente não existe Access. Com a variável `DEV_USER_EMAIL` definida, e some
 - Lista de tópicos ordenada pela **última atividade**: uma resposta nova "sobe" o tópico.
 - Marca **"novo"** em tópicos que você nunca abriu e **"novas respostas"** nos que tiveram atividade depois da sua última visita. Dentro do tópico, as respostas de outras pessoas desde a sua última visita ganham a marca **"nova"**.
 - Mostra autor, número de respostas e quem respondeu por último, e quando.
+- 30 tópicos por página (`/?pagina=2`). **"Marcar tudo como lido"** limpa as marcas de todos os tópicos, inclusive das outras páginas.
 
 **Editor amigável**
 - Editor visual (TipTap) com barra de botões: **negrito**, *itálico*, link, citação, listas e foto/vídeo. Atalhos: Ctrl+B, Ctrl+I, Ctrl+K (link) e Ctrl+Enter para publicar; digitar Markdown (`- `, `> `, `**x**`) também formata na hora.
@@ -119,6 +120,7 @@ São duas coisas com papéis diferentes, valendo para tópicos e respostas:
 
 **Notificações (dentro do app)**
 - Alguém respondeu seu tópico ou uma resposta sua.
+- Alguém mencionou você com `@apelido` num tópico ou resposta. A menção vira link para o perfil; quem já recebe o aviso de resposta pelo mesmo post não recebe outro, e editar um post só avisa quem foi mencionado agora. No máximo 10 pessoas por post.
 - Aplausos recebidos, agrupados ("Bia e mais 2 aplaudiram seu tópico"). Votos não notificam, para continuarem anônimos.
 - Contador no cabeçalho e página com a lista. Abrir o tópico marca os avisos dele como lidos; há também "marcar todas como lidas".
 
@@ -127,11 +129,9 @@ São duas coisas com papéis diferentes, valendo para tópicos e respostas:
 - Um admin não mexe na própria conta nem na de outro admin.
 
 ### Fora do MVP (próximos passos)
-- "Marcar tudo como lido" no índice
-- Paginação do índice (hoje mostra os 50 tópicos mais recentes) e de tópicos longos
+- Paginação de tópicos longos
 - Aba "Em alta", ordenada por pontuação
 - Busca (FTS5 do D1)
-- Menções `@apelido`
 - Expiração automática de convites (Cron Trigger)
 - Digest semanal por email
 - Domínio próprio

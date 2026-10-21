@@ -4,6 +4,7 @@ import type { NotificationRow } from "../lib/notifications";
 import { Layout } from "./layout";
 
 const describe = (n: NotificationRow) => {
+  if (n.type === "mention") return n.replyId ? "mencionou você numa resposta em" : "mencionou você no tópico";
   if (n.type === "reply") {
     return n.isReplyToReply ? "respondeu sua resposta em" : "respondeu seu tópico";
   }
@@ -40,7 +41,7 @@ export const NotificationsPage = ({ user, items }: { user: Member; items: Notifi
         {items.length === 0 ? (
           <tr>
             <td colspan={2} class="empty">
-              Nada por aqui ainda. Quando alguém responder ou aplaudir algo seu, aparece aqui.
+              Nada por aqui ainda. Quando alguém responder, aplaudir ou mencionar você, aparece aqui.
             </td>
           </tr>
         ) : (
@@ -48,7 +49,7 @@ export const NotificationsPage = ({ user, items }: { user: Member; items: Notifi
             <tr class={n.readAt ? "" : "unread"}>
               <td>
                 <span class="notif-icon" aria-hidden="true">
-                  {n.type === "clap" ? "👏" : "💬"}
+                  {n.type === "clap" ? "👏" : n.type === "mention" ? "@" : "💬"}
                 </span>{" "}
                 <strong>{actorLabel(n)}</strong> {describe(n)}{" "}
                 <a href={link(n)} class="topic-title">

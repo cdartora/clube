@@ -12,7 +12,7 @@ O escopo do MVP e as decisões de produto estão em [`docs/mvp.md`](docs/mvp.md)
 - **Boas-vindas:** o convidado escolhe apelido e nome de exibição e aceita as [regras da casa](src/content/rules.tsx).
 - **Tópicos e respostas em árvore**, com editor visual (o texto aparece formatado enquanto se digita: negrito, itálico, link, citação, listas, fotos e vídeos). O texto é guardado em Markdown, sem HTML bruto.
 - **Votos ▲ ▼** anônimos, que ordenam as respostas, e **aplausos 👏** públicos, até 10 por pessoa em cada post.
-- **Notificações** de respostas e aplausos, e marcas de **"novo"** / **"novas respostas"** no índice.
+- **Notificações** de respostas, aplausos e menções (`@apelido`), e marcas de **"novo"** / **"novas respostas"** no índice, com **"marcar tudo como lido"**. O índice mostra 30 tópicos por página.
 - **Perfis** (`/u/apelido`) e um **painel de admin** para ajustar cotas e desativar ou reativar membros.
 - Visual de fórum dos anos 2000, HTML renderizado no servidor, funciona no celular.
 
