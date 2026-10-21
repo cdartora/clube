@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+    branches: [stage]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Node 24 já vem com o npm 11 (o npm 10 tem um bug ao resolver as dependências do Vitest 4).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      # O wrangler gera o editor antes do deploy; aqui só confere que ele empacota.
+      - run: npm run build:editor

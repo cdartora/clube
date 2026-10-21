@@ -2,7 +2,7 @@ import { env } from "cloudflare:test";
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from "jose";
 import { beforeAll, describe, expect, it } from "vitest";
 import { verifyAccessJwt } from "../src/auth/access";
-import app from "../src/index";
+import { app } from "../src/index";
 import { insertUser, requestAs } from "./helpers";
 
 beforeAll(async () => {
@@ -99,6 +99,14 @@ describe("verifyAccessJwt", () => {
   it("recusa token de outra aplicação (aud)", async () => {
     const token = await sign({ email: "ana@x.com" }, { aud: "outra" });
     expect(await verifyAccessJwt(token, config, jwks)).toBeNull();
+  });
+
+  it("aceita qualquer aplicação da lista (workers.dev e preview URLs)", async () => {
+    const both = { ...config, aud: ["aud-123", "aud-preview"] };
+    expect(await verifyAccessJwt(await sign({ email: "ana@x.com" }, { aud: "aud-preview" }), both, jwks)).toBe(
+      "ana@x.com",
+    );
+    expect(await verifyAccessJwt(await sign({ email: "ana@x.com" }, { aud: "outra" }), both, jwks)).toBeNull();
   });
 
   it("recusa token de outro time (iss)", async () => {

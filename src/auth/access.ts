@@ -4,7 +4,7 @@ export const ACCESS_JWT_HEADER = "Cf-Access-Jwt-Assertion";
 
 export type AccessConfig = {
   teamDomain: string; // ex.: "meuclube.cloudflareaccess.com"
-  aud: string; // "Application Audience (AUD) Tag" da aplicação no Access
+  aud: string | string[]; // "Application Audience (AUD) Tag" da aplicação no Access (aceita qualquer uma da lista)
 };
 
 const jwksCache = new Map<string, JWTVerifyGetKey>();

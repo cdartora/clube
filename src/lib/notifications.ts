@@ -1,4 +1,4 @@
-import { aliasedTable, and, desc, eq, isNull, sql } from "drizzle-orm";
+import { aliasedTable, and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { Db } from "../db";
 import { notifications, replies, topics, users } from "../db/schema";
 
@@ -15,6 +15,31 @@ export const notifyReply = async (
     topicId: args.topicId,
     replyId: args.replyId,
   });
+};
+
+/** Um post não avisa mais que isso de pessoas de uma vez. */
+export const MAX_MENTIONS = 10;
+
+/**
+ * Avisa quem foi mencionado com @apelido. Não avisa o autor, membros desativados nem quem
+ * já vai receber outro aviso pelo mesmo post (`skip`, por exemplo o dono do post respondido).
+ */
+export const notifyMentions = async (
+  db: Db,
+  args: { usernames: string[]; actorId: number; topicId: number; replyId: number | null; skip?: number[] },
+) => {
+  const usernames = args.usernames.slice(0, MAX_MENTIONS);
+  if (usernames.length === 0) return;
+  const skip = new Set([args.actorId, ...(args.skip ?? [])]);
+  const mentioned = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(and(inArray(users.username, usernames), eq(users.status, "active")))
+    .all();
+  const rows = mentioned
+    .filter((u) => !skip.has(u.id))
+    .map((u) => ({ userId: u.id, actorId: args.actorId, type: "mention" as const, topicId: args.topicId, replyId: args.replyId }));
+  if (rows.length > 0) await db.insert(notifications).values(rows);
 };
 
 /**

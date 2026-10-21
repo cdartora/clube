@@ -5,10 +5,12 @@ Os nomes dos menus do painel da Cloudflare mudam de vez em quando; se algo não 
 
 ## 1. Banco e Worker
 
-O banco D1 já existe (o `database_id` está no `wrangler.jsonc`).
+O banco D1 já existe (o `database_id` está no `wrangler.jsonc`). Fotos e vídeos ficam num bucket R2, que
+precisa existir antes do primeiro deploy (o R2 tem que estar ativado na conta: painel › **R2**):
 
 ```sh
 npx wrangler login                 # uma vez, abre o navegador
+npx wrangler r2 bucket create clube-media
 npm run db:migrate:remote          # cria as tabelas no D1 de produção
 npm run seed:admin -- --remote --email SEU@EMAIL --username seuapelido --name "Seu Nome"
 npm run deploy                     # mostra a URL: https://clube.<sua-conta>.workers.dev
@@ -69,3 +71,96 @@ Abra a URL do Worker: o Access pede seu email, manda um código, e você cai no 
 - Com outro email (fora do grupo), o Access não deixa passar.
 - Em **Convites**, convide alguém: o email aparece no grupo `clube-membros` do painel.
 - Cancelando o convite, o email sai do grupo.
+
+## Branches e ambientes
+
+| Branch | Ambiente | Worker | Banco D1 |
+|---|---|---|---|
+| `main` | produção | `clube` | `clube` |
+| `stage` | staging | `clube-staging` | `clube-staging` |
+| qualquer outra (PRs) | preview do staging | versão de preview do `clube-staging` | `clube-staging` |
+
+Fluxo: abra o PR contra `stage`; cada push na branch gera uma preview URL. Depois do merge, o `stage` vai
+para o staging. Quando o staging estiver bom, abra um PR de `stage` para `main`.
+
+A produção não tem preview URLs (`preview_urls: false`): uma preview do Worker `clube` usaria o banco de
+produção.
+
+## 5. Staging
+
+O staging é um segundo Worker (`clube-staging`, o `env.staging` do `wrangler.jsonc`), com banco e grupo do
+Access próprios. Assim, testes e convites feitos no staging não mexem na produção.
+
+1. Crie o banco e copie o `database_id` que aparecer para `env.staging.d1_databases` no `wrangler.jsonc`:
+
+   ```sh
+   npx wrangler d1 create clube-staging
+   npx wrangler r2 bucket create clube-media-staging
+   ```
+
+2. Crie as tabelas, o primeiro admin e suba o Worker:
+
+   ```sh
+   npm run db:migrate:staging
+   npm run seed:admin -- --staging --email SEU@EMAIL --username seuapelido --name "Seu Nome"
+   npm run deploy:staging            # https://clube-staging.<sua-conta>.workers.dev
+   ```
+
+3. Repita o passo 2 (Access) para o `clube-staging`: crie o grupo **clube-staging**, ative o Access no
+   `workers.dev` **e nas Preview URLs** do Worker e restrinja as duas aplicações ao grupo. Cada aplicação tem
+   o seu AUD Tag: coloque os dois em `ACCESS_AUD`, separados por vírgula.
+4. Grave o token também no staging: `npx wrangler secret put CF_API_TOKEN --env staging`.
+5. Preencha `env.staging.vars` no `wrangler.jsonc` (mesmo `ACCESS_TEAM_DOMAIN` e `CF_ACCOUNT_ID`; o
+   `ACCESS_GROUP_ID` é o do grupo `clube-staging`).
+
+Os valores de `vars` não são segredos: deixe-os no `wrangler.jsonc`. Variáveis criadas só no painel são
+apagadas a cada `wrangler deploy` que não as tenha no arquivo. Só o `CF_API_TOKEN` fica como segredo.
+
+## 6. Deploy automático (Workers Builds)
+
+Em **Workers & Pages › (Worker) › Settings › Builds**, conecte o repositório:
+
+| | `clube` (produção) | `clube-staging` |
+|---|---|---|
+| Branch de produção | `main` | `stage` |
+| Comando de deploy | `npx wrangler deploy` | `npx wrangler deploy --env staging` |
+| Preview builds | desligado | ligado |
+| Preview command | — | `npx wrangler preview --env staging` |
+
+O `--env staging` é obrigatório nos dois comandos: sem ele, o wrangler usa a configuração de produção.
+As previews usam o bloco `env.staging.previews` do `wrangler.jsonc` (mesmo banco e variáveis do staging) e
+têm segredos próprios, compartilhados por todas elas: `npx wrangler preview base-config secret put CF_API_TOKEN --env staging`.
+
+Com isso, cada push em uma branch de PR gera uma preview do `clube-staging` (aparece no check do PR no
+GitHub), protegida pelo Access. As migrations não rodam sozinhas: quando um PR trouxer
+migration nova, rode `npm run db:migrate:staging` antes de testar a preview, e `npm run db:migrate:remote`
+antes do merge em `main`.
+
+## Fotos e vídeos (R2)
+
+Os arquivos ficam no R2 (`clube-media` na produção, `clube-media-staging` no staging e nas previews) e são
+servidos pelo próprio Worker em `/m/...`. O bucket fica privado, sem domínio público nem `r2.dev`: só quem
+passa pelo Access vê as mídias.
+
+Limites: fotos (JPEG, PNG, GIF, WebP) até 5 MB, vídeos (MP4, WebM) até 25 MB e foto de perfil até 2 MB.
+O tipo é conferido pelo conteúdo do arquivo, não pelo nome.
+
+### Mantendo o R2 no plano gratuito
+
+O R2 gratuito dá **10 GB guardados, 1 milhão de escritas e 10 milhões de leituras por mês**, somando todos os
+buckets da conta. O Clube se segura abaixo disso assim:
+
+- **Fotos reduzidas no navegador** antes de subir: no máximo 1600 px no lado maior (512 px na foto de
+  perfil), em WebP. Uma foto de celular de 3 a 5 MB vira algumas centenas de KB, e o EXIF (com a
+  localização) não vai junto. GIFs e vídeos sobem como estão.
+- **Espaço reservado por bucket** (`MEDIA_BUDGET_MB` no `wrangler.jsonc`): 8 GB na produção e 1 GB no
+  staging. Cada arquivo fica registrado na tabela `media`; quando um envio passaria do limite, ele é recusado
+  com um aviso. Também há cota por pessoa (1 GB) e no máximo 50 envios por pessoa por dia.
+- **Limpeza diária** (Cron Trigger às 4h17 UTC, `src/lib/media-cleanup.ts`): apaga arquivos que nenhum post
+  visível nem perfil usa há mais de 24 horas, como fotos de posts apagados ou que a pessoa desistiu de
+  publicar. Apagar não conta como escrita. A limpeza também acerta a tabela `media` com o que está no bucket.
+- **Cache no navegador**: cada endereço de mídia é imutável, então o navegador guarda o arquivo por um ano e
+  não pede de novo ao R2.
+
+O resultado da limpeza aparece nos logs do Worker ("Limpeza de mídia"). Para rodar na hora, sem esperar o
+cron: `npx wrangler dev --test-scheduled` e abra `http://localhost:8787/__scheduled`.

@@ -6,6 +6,7 @@ import { renderMarkdown } from "../lib/markdown";
 import { EMPTY_REACTIONS, type ReactionState, reactionKey } from "../lib/reactions";
 import { canDelete, canEdit } from "../lib/posts";
 import type { TreeNode } from "../lib/tree";
+import { Avatar } from "./avatar";
 import { Editor } from "./editor";
 import { FieldError } from "./form";
 import { Layout } from "./layout";
@@ -21,6 +22,7 @@ export type TopicView = {
   authorId: number;
   authorName: string;
   authorUsername: string;
+  authorAvatarKey: string | null;
   replyCount: number;
   score: number;
   clapCount: number;
@@ -37,6 +39,7 @@ export type ReplyView = {
   authorId: number;
   authorName: string;
   authorUsername: string;
+  authorAvatarKey: string | null;
   score: number;
   clapCount: number;
   createdAt: Date;
@@ -44,13 +47,15 @@ export type ReplyView = {
   deletedAt: Date | null;
 };
 
-const PostMeta = ({ name, username, createdAt, updatedAt }: {
+const PostMeta = ({ name, username, avatarKey, createdAt, updatedAt }: {
   name: string;
   username: string;
+  avatarKey: string | null;
   createdAt: Date;
   updatedAt: Date | null;
 }) => (
   <div class="post-meta">
+    <Avatar name={name} avatarKey={avatarKey} small />
     <a href={`/u/${username}`} class="post-author">
       {name}
     </a>{" "}
@@ -113,6 +118,7 @@ const ReplyItem = ({ node, topicId, user, depth, reactions, newSince }: TreeProp
         <PostMeta
           name={node.authorName}
           username={node.authorUsername}
+          avatarKey={node.authorAvatarKey}
           createdAt={node.createdAt}
           updatedAt={node.updatedAt}
         />
@@ -189,6 +195,7 @@ export const TopicPage = ({
       <PostMeta
         name={topic.authorName}
         username={topic.authorUsername}
+        avatarKey={topic.authorAvatarKey}
         createdAt={topic.createdAt}
         updatedAt={topic.updatedAt}
       />
@@ -248,6 +255,7 @@ export const ReplyPage = ({
         <PostMeta
           name={parent.authorName}
           username={parent.authorUsername}
+        avatarKey={parent.authorAvatarKey}
           createdAt={parent.createdAt}
           updatedAt={parent.updatedAt}
         />

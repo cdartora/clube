@@ -20,6 +20,8 @@ export const users = sqliteTable("users", {
   username: text("username").notNull().unique(),
   displayName: text("display_name").notNull(),
   bio: text("bio").notNull().default(""),
+  // Chave da foto de perfil no R2 (bucket MEDIA). Nula = mostra a inicial do nome.
+  avatarKey: text("avatar_key"),
   role: text("role", { enum: ["admin", "member"] }).notNull().default("member"),
   inviteQuota: integer("invite_quota").notNull().default(1),
   invitedBy: integer("invited_by").references((): AnySQLiteColumn => users.id),
@@ -162,7 +164,7 @@ export const notifications = sqliteTable(
     actorId: integer("actor_id")
       .notNull()
       .references(() => users.id),
-    type: text("type", { enum: ["reply", "clap"] }).notNull(),
+    type: text("type", { enum: ["reply", "clap", "mention"] }).notNull(),
     topicId: integer("topic_id")
       .notNull()
       .references(() => topics.id),
@@ -171,6 +173,21 @@ export const notifications = sqliteTable(
     createdAt: createdAt(),
   },
   (t) => [index("notifications_user_idx").on(t.userId, t.readAt)],
+);
+
+// Cada arquivo guardado no R2. Serve para controlar o espaço usado (sem listar o bucket a cada
+// upload) e para a limpeza diária achar arquivos que nenhum post usa mais.
+export const media = sqliteTable(
+  "media",
+  {
+    key: text("key").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    size: integer("size").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("media_user_created_idx").on(t.userId, t.createdAt)],
 );
 
 export type User = typeof users.$inferSelect;

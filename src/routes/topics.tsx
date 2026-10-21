@@ -1,10 +1,10 @@
-import { aliasedTable, and, desc, eq, isNull, sql } from "drizzle-orm";
+import { aliasedTable, and, desc, eq, gte, isNull, sql } from "drizzle-orm";
 import { type Context, Hono } from "hono";
 import type { AppEnv } from "../auth/middleware";
 import { type Db, getDb } from "../db";
 import { replies, topicReads, topics, type User, users } from "../db/schema";
-import { renderMarkdown } from "../lib/markdown";
-import { countUnread, markTopicNotificationsRead, notifyReply } from "../lib/notifications";
+import { findMentions, renderMarkdown } from "../lib/markdown";
+import { countUnread, markTopicNotificationsRead, notifyMentions, notifyReply } from "../lib/notifications";
 import { loadReactions } from "../lib/reactions";
 import { getLastRead, markTopicRead, readState } from "../lib/reads";
 import {
@@ -29,6 +29,12 @@ import {
   type TopicView,
 } from "../views/topic";
 
+/** Menções que aparecem no texto novo e não estavam no anterior: editar não repete o aviso. */
+const newMentions = (body: string, previous = "") => {
+  const before = new Set(findMentions(previous));
+  return findMentions(body).filter((u) => !before.has(u));
+};
+
 // Rotas de membros: o requireMember já rodou, então o usuário existe.
 const me = (c: Context<AppEnv>) => c.get("user") as User;
 
@@ -52,6 +58,7 @@ const loadTopic = (db: Db, id: number): Promise<TopicView | undefined> =>
       authorId: topics.authorId,
       authorName: users.displayName,
       authorUsername: users.username,
+      authorAvatarKey: users.avatarKey,
       replyCount: topics.replyCount,
       score: topics.score,
       clapCount: topics.clapCount,
@@ -71,6 +78,7 @@ const replySelect = {
   authorId: replies.authorId,
   authorName: users.displayName,
   authorUsername: users.username,
+  authorAvatarKey: users.avatarKey,
   score: replies.score,
   clapCount: replies.clapCount,
   createdAt: replies.createdAt,
@@ -105,11 +113,44 @@ export const topicRoutes = new Hono<AppEnv>();
 
 // --- Índice ---
 
+// Cliques repetidos em "Responder" mandam o mesmo texto várias vezes.
+const DUPLICATE_WINDOW_MS = 60_000;
+
+/** Resposta idêntica que a mesma pessoa acabou de publicar no mesmo lugar, se houver. */
+const findRecentDuplicate = (
+  db: Db,
+  reply: { topicId: number; parentId: number | null; authorId: number; bodyMd: string },
+  now: Date,
+) =>
+  db
+    .select({ id: replies.id })
+    .from(replies)
+    .where(
+      and(
+        eq(replies.topicId, reply.topicId),
+        reply.parentId ? eq(replies.parentId, reply.parentId) : isNull(replies.parentId),
+        eq(replies.authorId, reply.authorId),
+        eq(replies.bodyMd, reply.bodyMd),
+        isNull(replies.deletedAt),
+        gte(replies.createdAt, new Date(now.getTime() - DUPLICATE_WINDOW_MS)),
+      ),
+    )
+    .get();
+
 const lastReplier = aliasedTable(users, "last_replier");
 
 type IndexRow = Omit<TopicRow, "readState"> & { lastReadAt: Date | null };
 
+/** Tópicos por página no índice. */
+export const PAGE_SIZE = 30;
+
+const parsePage = (raw: string | undefined) => {
+  const n = Number(raw ?? 1);
+  return Number.isSafeInteger(n) && n >= 1 ? n : 1;
+};
+
 topicRoutes.get("/", async (c) => {
+  const page = parsePage(c.req.query("pagina"));
   // Anotado à mão: com dois leftJoin o Drizzle não consegue inferir o tipo das linhas.
   const rows: IndexRow[] = await getDb(c.env.DB)
     .select({
@@ -128,11 +169,33 @@ topicRoutes.get("/", async (c) => {
     .leftJoin(topicReads, and(eq(topicReads.topicId, topics.id), eq(topicReads.userId, me(c).id)))
     .where(isNull(topics.deletedAt))
     .orderBy(desc(topics.lastActivityAt), desc(topics.id))
-    .limit(50)
+    // Um a mais que a página só para saber se existe a próxima.
+    .limit(PAGE_SIZE + 1)
+    .offset((page - 1) * PAGE_SIZE)
     .all();
 
-  const withState = rows.map((t) => ({ ...t, readState: readState(t.lastActivityAt, t.lastReadAt) }));
-  return c.html(<HomePage topics={withState} user={me(c)} />);
+  // Página além do fim (link velho, tópicos apagados): volta para o começo.
+  if (page > 1 && rows.length === 0) return c.redirect("/", 302);
+
+  const hasNext = rows.length > PAGE_SIZE;
+  const withState = rows
+    .slice(0, PAGE_SIZE)
+    .map((t) => ({ ...t, readState: readState(t.lastActivityAt, t.lastReadAt) }));
+  return c.html(<HomePage topics={withState} user={me(c)} page={page} hasNext={hasNext} />);
+});
+
+// "Marcar tudo como lido": só grava os tópicos que estão de fato com novidade.
+topicRoutes.post("/lidos", async (c) => {
+  const now = new Date();
+  await getDb(c.env.DB).run(sql`
+    INSERT INTO ${topicReads} (user_id, topic_id, last_read_at)
+    SELECT ${me(c).id}, ${topics.id}, ${Math.floor(now.getTime() / 1000)}
+    FROM ${topics}
+    LEFT JOIN ${topicReads} ON ${topicReads.topicId} = ${topics.id} AND ${topicReads.userId} = ${me(c).id}
+    WHERE ${topics.deletedAt} IS NULL
+      AND (${topicReads.lastReadAt} IS NULL OR ${topics.lastActivityAt} > ${topicReads.lastReadAt})
+    ON CONFLICT (user_id, topic_id) DO UPDATE SET last_read_at = excluded.last_read_at`);
+  return c.redirect("/", 303);
 });
 
 // --- Tópicos ---
@@ -157,6 +220,12 @@ topicRoutes.post("/novo", async (c) => {
     .values({ authorId: me(c).id, title: values.title, bodyMd: values.body })
     .returning({ id: topics.id })
     .get();
+  await notifyMentions(getDb(c.env.DB), {
+    usernames: newMentions(values.body),
+    actorId: me(c).id,
+    topicId: created.id,
+    replyId: null,
+  });
   return c.redirect(`/t/${created.id}`, 303);
 });
 
@@ -229,6 +298,12 @@ topicRoutes.post("/t/:id{[0-9]+}/editar", async (c) => {
     .update(topics)
     .set({ title: values.title, bodyMd: values.body, updatedAt: new Date() })
     .where(eq(topics.id, topic.id));
+  await notifyMentions(db, {
+    usernames: newMentions(values.body, topic.bodyMd),
+    actorId: me(c).id,
+    topicId: topic.id,
+    replyId: null,
+  });
   return c.redirect(`/t/${topic.id}`, 303);
 });
 
@@ -280,6 +355,13 @@ topicRoutes.post("/t/:id{[0-9]+}/respostas", async (c) => {
   }
 
   const now = new Date();
+  const duplicate = await findRecentDuplicate(
+    db,
+    { topicId: topic.id, parentId, authorId: me(c).id, bodyMd: body },
+    now,
+  );
+  if (duplicate) return c.redirect(`/t/${topic.id}#r-${duplicate.id}`, 303);
+
   const [inserted] = await db.batch([
     db
       .insert(replies)
@@ -295,11 +377,14 @@ topicRoutes.post("/t/:id{[0-9]+}/respostas", async (c) => {
       })
       .where(eq(topics.id, topic.id)),
   ]);
-  await notifyReply(db, {
-    recipientId: parent ? parent.authorId : topic.authorId,
+  const recipientId = parent ? parent.authorId : topic.authorId;
+  await notifyReply(db, { recipientId, actorId: me(c).id, topicId: topic.id, replyId: inserted[0].id });
+  await notifyMentions(db, {
+    usernames: newMentions(body),
     actorId: me(c).id,
     topicId: topic.id,
     replyId: inserted[0].id,
+    skip: [recipientId], // já recebeu o aviso de resposta
   });
   return c.redirect(`/t/${topic.id}#r-${inserted[0].id}`, 303);
 });
@@ -341,6 +426,12 @@ topicRoutes.post("/r/:id{[0-9]+}/editar", async (c) => {
   }
 
   await db.update(replies).set({ bodyMd: body, updatedAt: new Date() }).where(eq(replies.id, reply.id));
+  await notifyMentions(db, {
+    usernames: newMentions(body, reply.bodyMd),
+    actorId: me(c).id,
+    topicId: reply.topicId,
+    replyId: reply.id,
+  });
   return c.redirect(`/t/${reply.topicId}#r-${reply.id}`, 303);
 });
 

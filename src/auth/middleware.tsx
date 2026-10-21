@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import type { Context } from "hono";
 import { createMiddleware } from "hono/factory";
 import { getDb } from "../db";
 import { type User, users } from "../db/schema";
@@ -31,7 +32,9 @@ export const authenticate = createMiddleware<AppEnv>(async (c, next) => {
   if (ACCESS_TEAM_DOMAIN && ACCESS_AUD) {
     const token = c.req.header(ACCESS_JWT_HEADER);
     if (token) {
-      email = await verifyAccessJwt(token, { teamDomain: ACCESS_TEAM_DOMAIN, aud: ACCESS_AUD });
+      // Mais de uma aplicação do Access (workers.dev e preview URLs) = AUDs separados por vírgula.
+      const aud = ACCESS_AUD.split(",").map((a) => a.trim()).filter(Boolean);
+      email = await verifyAccessJwt(token, { teamDomain: ACCESS_TEAM_DOMAIN, aud });
     }
   } else if (DEV_USER_EMAIL) {
     email = DEV_USER_EMAIL.toLowerCase();
@@ -58,11 +61,17 @@ export const authenticate = createMiddleware<AppEnv>(async (c, next) => {
   await next();
 });
 
+/**
+ * Fotos e vídeos (/m/) e trechos do htmx não mostram o cabeçalho, então não precisam do contador
+ * de notificações: é uma consulta a menos no D1 em cada imagem de cada página.
+ */
+const showsNavbar = (c: Context<AppEnv>) => !c.req.header("HX-Request") && !c.req.path.startsWith("/m/");
+
 /** Só deixa passar membros ativos. */
 export const requireMember = createMiddleware<AppEnv>(async (c, next) => {
   const user = c.get("user");
   if (user?.status === "active") {
-    c.set("user", { ...user, unreadCount: await countUnread(getDb(c.env.DB), user.id) });
+    if (showsNavbar(c)) c.set("user", { ...user, unreadCount: await countUnread(getDb(c.env.DB), user.id) });
     return next();
   }
 

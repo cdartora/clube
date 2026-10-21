@@ -1,108 +1,94 @@
-// JavaScript do Clube: editor (barra de botões, atalhos, prévia), aplausos e
-// pequenos comportamentos de página. Tudo por delegação de eventos, então
-// funciona também no HTML que o htmx injeta depois do carregamento.
+// JavaScript do Clube: aplausos e pequenos comportamentos de página (o editor fica em
+// client/editor.js). Tudo por delegação de eventos, então funciona também no HTML que
+// o htmx injeta depois do carregamento.
 (() => {
-  const editorOf = (el) => el.closest(".editor");
-  const inputOf = (editor) => editor.querySelector(".editor-input");
-
-  // Envolve a seleção (ou um texto de exemplo) com `before` e `after`.
-  const wrap = (input, before, after, placeholder) => {
-    const { selectionStart: start, selectionEnd: end, value } = input;
-    const selected = value.slice(start, end) || placeholder;
-    input.setRangeText(before + selected + after, start, end, "end");
-    input.setSelectionRange(start + before.length, start + before.length + selected.length);
+  // O editor (public/editor.js, ~140 KB) só é baixado em páginas que têm um, inclusive quando
+  // o formulário de resposta chega depois pelo htmx. Ele mesmo monta os editores ao carregar.
+  let editorRequested = false;
+  const loadEditor = (root) => {
+    if (editorRequested || !(root.matches?.(".editor") || root.querySelector?.(".editor"))) return;
+    editorRequested = true;
+    const script = document.createElement("script");
+    script.src = "/editor.js";
+    document.head.append(script);
   };
+  loadEditor(document);
+  document.addEventListener("htmx:load", (event) => loadEditor(event.target));
 
-  // Coloca `prefix` no começo de cada linha da seleção. Numa linha vazia, só
-  // insere o prefixo e deixa o cursor pronto para digitar.
-  const prefixLines = (input, prefix) => {
-    const { value } = input;
-    const start = value.lastIndexOf("\n", input.selectionStart - 1) + 1;
-    let end = value.indexOf("\n", input.selectionEnd);
-    if (end === -1) end = value.length;
-    const result = value
-      .slice(start, end)
-      .split("\n")
-      .map((line) => prefix + line)
-      .join("\n");
-    input.setRangeText(result, start, end, "end");
-  };
+  // Fotos são reduzidas no navegador antes de subir: uma foto de celular (3 a 5 MB) vira algumas
+  // centenas de KB, o que segura o R2 no plano gratuito. De quebra, sai o EXIF (com a localização).
+  // GIF (pode ser animado), vídeo e o que o navegador não souber abrir sobem como estão.
+  const SHRINKABLE = /^image\/(jpeg|png|webp)$/;
+  const SMALL_ENOUGH = 300 * 1024;
 
-  const actions = {
-    bold: (input) => wrap(input, "**", "**", "texto em negrito"),
-    italic: (input) => wrap(input, "_", "_", "texto em itálico"),
-    link: (input) => {
-      const url = window.prompt("Endereço do link (https://…):", "https://");
-      if (!url || url === "https://") return;
-      wrap(input, "[", `](${url})`, "texto do link");
-    },
-    quote: (input) => prefixLines(input, "> "),
-    list: (input) => prefixLines(input, "- "),
-  };
+  const encode = (canvas, type, quality) => new Promise((resolve) => canvas.toBlob(resolve, type, quality));
 
-  const runAction = (editor, name) => {
-    const input = inputOf(editor);
-    if (editor.classList.contains("previewing")) showTab(editor, "write");
-    input.focus();
-    actions[name](input);
-  };
-
-  const showTab = async (editor, tab) => {
-    const input = inputOf(editor);
-    const preview = editor.querySelector(".editor-preview");
-    editor.querySelectorAll("[data-editor-tab]").forEach((b) => {
-      b.classList.toggle("active", b.dataset.editorTab === tab);
-    });
-    editor.classList.toggle("previewing", tab === "preview");
-
-    if (tab === "write") {
-      preview.hidden = true;
-      input.hidden = false;
-      input.focus();
-      return;
-    }
-
-    // Se a altura ficar como está, a página não "pula" ao trocar de aba.
-    preview.style.minHeight = `${input.offsetHeight}px`;
-    preview.innerHTML = '<p class="muted">Carregando…</p>';
-    preview.hidden = false;
-    input.hidden = true;
+  const shrinkImage = async (file, maxSide = 1600) => {
+    if (!SHRINKABLE.test(file.type)) return file;
+    let bitmap;
     try {
-      const res = await fetch("/preview", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ body: input.value }),
-      });
-      if (!res.ok) throw new Error(res.statusText);
-      preview.innerHTML = await res.text(); // HTML já sanitizado pelo servidor
+      bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
     } catch {
-      preview.innerHTML = '<p class="muted">Não foi possível gerar a prévia.</p>';
+      return file;
     }
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+    if (scale === 1 && file.size <= SMALL_ENOUGH) {
+      bitmap.close();
+      return file;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+    // WebP é menor; o Safari antigo não gera WebP e devolve PNG, então ali vai JPEG (fundo branco
+    // no lugar da transparência).
+    let blob = await encode(canvas, "image/webp", 0.82);
+    if (!blob || blob.type !== "image/webp") {
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      blob = await encode(canvas, "image/jpeg", 0.85);
+    }
+    bitmap.close();
+    if (!blob || blob.size >= file.size) return file;
+    const ext = blob.type === "image/webp" ? "webp" : "jpg";
+    return new File([blob], file.name.replace(/\.[^.]*$/, "") + "." + ext, { type: blob.type });
   };
 
+  // O editor (public/editor.js) usa a mesma função.
+  window.Clube = { shrinkImage };
+
+  // Foto de perfil: reduz assim que é escolhida. O envio espera a redução terminar.
+  const shrinking = new WeakMap();
+  document.addEventListener("change", (event) => {
+    const input = event.target;
+    if (!input.matches("input[type=file][data-shrink]") || !input.files[0]) return;
+    const done = shrinkImage(input.files[0], Number(input.dataset.shrink)).then((file) => {
+      const list = new DataTransfer();
+      list.items.add(file);
+      input.files = list.files;
+    });
+    shrinking.set(input.form, done);
+    done.finally(() => shrinking.delete(input.form));
+  });
+  document.addEventListener(
+    "submit",
+    (event) => {
+      const done = shrinking.get(event.target);
+      if (!done) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      done.finally(() => event.target.requestSubmit());
+    },
+    true,
+  );
+
+  // "Cancelar" num formulário de resposta aberto no meio da árvore.
   document.addEventListener("click", (event) => {
-    const tool = event.target.closest("[data-editor-action]");
-    if (tool) return runAction(editorOf(tool), tool.dataset.editorAction);
-
-    const tab = event.target.closest("[data-editor-tab]");
-    if (tab) return showTab(editorOf(tab), tab.dataset.editorTab);
-
     const cancel = event.target.closest("[data-cancel-reply]");
     if (cancel) cancel.closest(".reply-slot").replaceChildren();
-  });
-
-  document.addEventListener("keydown", (event) => {
-    if (!(event.ctrlKey || event.metaKey) || !event.target.matches(".editor-input")) return;
-    const editor = editorOf(event.target);
-    const key = event.key.toLowerCase();
-    if (key === "b" || key === "i") {
-      event.preventDefault();
-      runAction(editor, key === "b" ? "bold" : "italic");
-    } else if (key === "enter") {
-      // Ctrl+Enter publica.
-      event.preventDefault();
-      event.target.form.requestSubmit();
-    }
   });
 
   // Aplausos: cada clique soma na hora na tela; depois de uma pausa, os cliques
@@ -177,5 +163,25 @@
   document.addEventListener("submit", (event) => {
     const message = event.target.dataset.confirm;
     if (message && !window.confirm(message)) event.preventDefault();
+  });
+
+  // Envio duplo: enquanto a próxima página não chega, novos cliques em
+  // "Responder" (ou em qualquer botão de envio) são ignorados. Os botões não
+  // são desativados porque botão desativado não manda o próprio name/value.
+  document.addEventListener("submit", (event) => {
+    const form = event.target;
+    if (event.defaultPrevented || form.matches("[data-clap-form], [hx-post]")) return;
+    if (form.classList.contains("submitting")) return event.preventDefault();
+    form.classList.add("submitting");
+    form.setAttribute("aria-busy", "true");
+  });
+
+  // Voltar com o botão do navegador traz a página da memória: libera os formulários.
+  window.addEventListener("pageshow", (event) => {
+    if (!event.persisted) return;
+    document.querySelectorAll("form.submitting").forEach((form) => {
+      form.classList.remove("submitting");
+      form.removeAttribute("aria-busy");
+    });
   });
 })();

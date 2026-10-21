@@ -12,6 +12,7 @@ export type Profile = {
   username: string;
   displayName: string;
   bio: string;
+  avatarKey: string | null;
   role: "admin" | "member";
   status: "active" | "disabled";
   createdAt: Date;
@@ -27,6 +28,7 @@ export const loadProfile = (db: Db, username: string): Promise<Profile | undefin
       username: users.username,
       displayName: users.displayName,
       bio: users.bio,
+      avatarKey: users.avatarKey,
       role: users.role,
       status: users.status,
       createdAt: users.createdAt,

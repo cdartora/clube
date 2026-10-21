@@ -99,6 +99,15 @@ describe("convites", () => {
     expect(row).toBeNull();
   });
 
+  it("se o Access falhar, só o admin vê o motivo técnico", async () => {
+    access.state.fail = true;
+    expect(await (await invite(CHEFE, "ko@x.com")).text()).toContain("Detalhe: API do Access respondeu 500: boom");
+    await insertUser(50, "dani@x.com", "dani", "Dani");
+    const member = await (await invite("dani@x.com", "ko@x.com")).text();
+    expect(member).toContain("Não consegui liberar o acesso");
+    expect(member).not.toContain("boom");
+  });
+
   it("só quem convidou (ou admin) cancela, e só convite pendente", async () => {
     const res = await invite(CHEFE, "leo@x.com");
     const id = inviteId(res);

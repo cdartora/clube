@@ -2,8 +2,10 @@ import { Hono } from "hono";
 import { csrf } from "hono/csrf";
 import { type AppEnv, authenticate, requireMember } from "./auth/middleware";
 import type { User } from "./db/schema";
+import { cleanupMedia } from "./lib/media-cleanup";
 import { adminRoutes } from "./routes/admin";
 import { inviteRoutes } from "./routes/invites";
+import { mediaRoutes } from "./routes/media";
 import { notificationRoutes } from "./routes/notifications";
 import { reactionRoutes } from "./routes/reactions";
 import { topicRoutes } from "./routes/topics";
@@ -12,7 +14,7 @@ import { welcome } from "./routes/welcome";
 import { ErrorPage } from "./views/errors";
 import { RulesPage } from "./views/rules";
 
-const app = new Hono<AppEnv>();
+export const app = new Hono<AppEnv>();
 
 app.use(csrf(), authenticate);
 
@@ -27,6 +29,7 @@ app.route("/", inviteRoutes);
 app.route("/", notificationRoutes);
 app.route("/", userRoutes);
 app.route("/", adminRoutes);
+app.route("/", mediaRoutes);
 
 app.get("/regras", (c) => c.html(<RulesPage user={c.get("user") as User} />));
 
@@ -39,4 +42,12 @@ app.notFound((c) =>
   ),
 );
 
-export default app;
+export default {
+  fetch: app.fetch,
+  // Cron diário (wrangler.jsonc): apaga do R2 fotos e vídeos que nenhum post usa mais.
+  async scheduled(_controller, env, ctx) {
+    ctx.waitUntil(
+      cleanupMedia(env).then((result) => console.log("Limpeza de mídia", JSON.stringify(result))),
+    );
+  },
+} satisfies ExportedHandler<Env>;

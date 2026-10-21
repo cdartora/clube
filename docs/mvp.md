@@ -28,6 +28,7 @@ Navegador ──► Cloudflare Access ──► Worker (Hono) ──► D1
 - **Cloudflare Access** é o portão. Quem não está liberado não chega no Worker.
 - **Worker (Hono)** valida o JWT do Access (`Cf-Access-Jwt-Assertion`: assinatura, `aud`, expiração), descobre o email e carrega o usuário do D1.
 - **D1** guarda tudo: usuários, convites, tópicos, respostas, votos, aplausos e notificações.
+- **R2** guarda fotos e vídeos (`media` no D1 registra cada arquivo, para controlar o espaço).
 - **Páginas**: JSX do próprio Hono (`hono/jsx`) renderizado no servidor. O htmx entra onde evita recarregar a página inteira (votar, aplaudir, prévia do editor, abrir o formulário de resposta, marcar notificação como lida).
 
 ### Limites do free tier
@@ -37,7 +38,8 @@ Navegador ──► Cloudflare Access ──► Worker (Hono) ──► D1
 | Workers | 100k requests/dia | algumas centenas |
 | D1 | 5M leituras e 100k escritas por dia, 5 GB | muito abaixo |
 | Access | 50 usuários | começa com 4 |
-| Cron Triggers | grátis | expirar convites (pós-MVP) |
+| R2 | 10 GB, 1M escritas e 10M leituras por mês | travado em 8 GB (+1 GB do staging); veja `deploy.md` |
+| Cron Triggers | grátis | limpeza diária do R2; expirar convites (pós-MVP) |
 
 ## Auth e onboarding
 
@@ -85,11 +87,12 @@ Localmente não existe Access. Com a variável `DEV_USER_EMAIL` definida, e some
 - Lista de tópicos ordenada pela **última atividade**: uma resposta nova "sobe" o tópico.
 - Marca **"novo"** em tópicos que você nunca abriu e **"novas respostas"** nos que tiveram atividade depois da sua última visita. Dentro do tópico, as respostas de outras pessoas desde a sua última visita ganham a marca **"nova"**.
 - Mostra autor, número de respostas e quem respondeu por último, e quando.
+- 30 tópicos por página (`/?pagina=2`). **"Marcar tudo como lido"** limpa as marcas de todos os tópicos, inclusive das outras páginas.
 
 **Editor amigável**
-- Uma caixa de texto com barra de botões: **negrito**, *itálico*, link, citação e lista. Atalhos: Ctrl+B, Ctrl+I e Ctrl+Enter para publicar.
-- Abas **Escrever / Visualizar**. A prévia é renderizada pelo servidor, então o que se vê é exatamente o que vai ser publicado.
-- O conteúdo é guardado em Markdown, mas a pessoa não precisa saber disso: os botões escrevem a sintaxe.
+- Editor visual (TipTap) com barra de botões: **negrito**, *itálico*, link, citação, listas e foto/vídeo. Atalhos: Ctrl+B, Ctrl+I, Ctrl+K (link) e Ctrl+Enter para publicar; digitar Markdown (`- `, `> `, `**x**`) também formata na hora.
+- Sem abas de prévia: o texto já aparece como vai ficar no post.
+- O conteúdo é guardado em Markdown, mas a pessoa não precisa saber disso. Sem JavaScript, o editor volta a ser uma caixa de texto com Markdown.
 - A renderização usa `markdown-it` com HTML bruto desabilitado, para não abrir brecha de XSS.
 
 **Votos e aplausos**
@@ -117,6 +120,7 @@ São duas coisas com papéis diferentes, valendo para tópicos e respostas:
 
 **Notificações (dentro do app)**
 - Alguém respondeu seu tópico ou uma resposta sua.
+- Alguém mencionou você com `@apelido` num tópico ou resposta. A menção vira link para o perfil; quem já recebe o aviso de resposta pelo mesmo post não recebe outro, e editar um post só avisa quem foi mencionado agora. No máximo 10 pessoas por post.
 - Aplausos recebidos, agrupados ("Bia e mais 2 aplaudiram seu tópico"). Votos não notificam, para continuarem anônimos.
 - Contador no cabeçalho e página com a lista. Abrir o tópico marca os avisos dele como lidos; há também "marcar todas como lidas".
 
@@ -125,12 +129,9 @@ São duas coisas com papéis diferentes, valendo para tópicos e respostas:
 - Um admin não mexe na própria conta nem na de outro admin.
 
 ### Fora do MVP (próximos passos)
-- "Marcar tudo como lido" no índice
-- Paginação do índice (hoje mostra os 50 tópicos mais recentes) e de tópicos longos
+- Paginação de tópicos longos
 - Aba "Em alta", ordenada por pontuação
-- Upload de imagens e foto de perfil (R2)
 - Busca (FTS5 do D1)
-- Menções `@apelido`
 - Expiração automática de convites (Cron Trigger)
 - Digest semanal por email
 - Domínio próprio

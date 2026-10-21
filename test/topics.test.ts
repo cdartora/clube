@@ -48,6 +48,15 @@ describe("tópicos", () => {
     expect(await page(BETO, "/")).toContain(`href="/t/${id}"`);
   });
 
+  it("manda o editor como textarea com Markdown e barra de botões (o editor visual vem do JS)", async () => {
+    const html = await page(ANA, "/novo");
+    expect(html).toContain('<textarea name="body" class="editor-input"');
+    expect(html).toContain('data-editor-action="bold"');
+    expect(html).toContain('data-editor-action="orderedList"');
+    expect(html).toContain("data-editor-upload");
+    expect(html).not.toContain("Visualizar");
+  });
+
   it("valida título e texto", async () => {
     const res = await postAs(ANA, "/novo", { title: "oi", body: "   " });
     expect(res.status).toBe(400);
@@ -121,6 +130,22 @@ describe("respostas", () => {
     const rootA = html.slice(html.indexOf(`id="r-${a}"`), html.indexOf("Raiz B"));
     expect(rootA).toContain('class="replies nested"');
     expect(rootA).toContain(`id="r-${a1}"`);
+  });
+
+  it("cliques repetidos em Responder não duplicam a resposta", async () => {
+    const id = await createTopic();
+    const first = await createReply(id, "Só uma vez", BETO);
+    const again = await createReply(id, "Só uma vez", BETO);
+    const both = await Promise.all([createReply(id, "Só uma vez", BETO), createReply(id, "Só uma vez", BETO)]);
+
+    expect(again).toBe(first);
+    expect(both).toEqual([first, first]);
+    expect((await topicRow(id))?.reply_count).toBe(1);
+
+    // Mesmo texto em outro lugar, ou de outra pessoa, é outra resposta.
+    expect(await createReply(id, "Só uma vez", BETO, first)).not.toBe(first);
+    expect(await createReply(id, "Só uma vez", ANA)).not.toBe(first);
+    expect((await topicRow(id))?.reply_count).toBe(3);
   });
 
   it("recusa responder a uma resposta de outro tópico", async () => {
