@@ -4,7 +4,7 @@ Fórum fechado para amigos, sem anúncios. Roda em Cloudflare Workers + D1.
 
 O escopo do MVP e as decisões de produto estão em [`docs/mvp.md`](docs/mvp.md).
 
-**Situação:** o MVP está implementado e testado; falta o deploy (veja [`docs/deploy.md`](docs/deploy.md)).
+**Situação:** em produção. Cada push na `main` faz o deploy automático pelo Workers Builds (veja [`docs/deploy.md`](docs/deploy.md)).
 
 ## O que o fórum faz
 
